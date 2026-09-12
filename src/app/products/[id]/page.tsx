@@ -1,6 +1,7 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { deleteProduct } from "@/app/actions/products";
-import { deleteRecord } from "@/app/actions/records";
+import { createRecord, deleteRecord } from "@/app/actions/records";
 import { RecordForm } from "@/components/record-form";
 import { ConfirmForm, DangerButton, LinkButton } from "@/components/ui";
 import { getDb } from "@/db";
@@ -87,7 +88,7 @@ export default async function ProductPage({ params }: PageProps<"/products/[id]"
 
 			<section className="space-y-3 rounded-lg border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-950">
 				<h2 className="font-semibold">価格を記録</h2>
-				<RecordForm productId={product.id} unit={product.unit} stores={stores} />
+				<RecordForm action={createRecord} productId={product.id} unit={product.unit} stores={stores} />
 			</section>
 
 			<section className="space-y-3">
@@ -133,13 +134,18 @@ export default async function ProductPage({ params }: PageProps<"/products/[id]"
 										</td>
 										<td className="px-3 py-2 text-zinc-500">{r.memo}</td>
 										<td className="px-3 py-2 text-right">
-											<ConfirmForm action={deleteRecord} message="この価格記録を削除しますか？">
-												<input type="hidden" name="id" value={r.id} />
-												<input type="hidden" name="productId" value={product.id} />
-												<button type="submit" className="text-xs text-red-600 hover:underline">
-													削除
-												</button>
-											</ConfirmForm>
+											<div className="flex items-center justify-end gap-2">
+												<Link href={`/products/${product.id}/records/${r.id}/edit`} className="text-xs text-zinc-600 hover:underline dark:text-zinc-300">
+													編集
+												</Link>
+												<ConfirmForm action={deleteRecord} message="この価格記録を削除しますか？">
+													<input type="hidden" name="id" value={r.id} />
+													<input type="hidden" name="productId" value={product.id} />
+													<button type="submit" className="text-xs text-red-600 hover:underline">
+														削除
+													</button>
+												</ConfirmForm>
+											</div>
 										</td>
 									</tr>
 								))}

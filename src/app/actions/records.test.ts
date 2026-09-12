@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
-import { revalidated } from "@/test/action-mocks";
+import { expectRedirect, revalidated } from "@/test/action-mocks";
 import { createTestEnv, fakeImage, formData, type TestEnv } from "@/test/d1";
 import { listRecords } from "@/db/queries";
 import { isForeignKeyViolation } from "@/lib/errors";
@@ -16,7 +16,7 @@ vi.mock("next/navigation", async () => {
 	const { RedirectSignal } = await import("@/test/action-mocks");
 	return { redirect: (to: string) => { throw new RedirectSignal(to); } };
 });
-const { createRecord, deleteRecord } = await import("./records");
+const { createRecord, deleteRecord, updateRecord } = await import("./records");
 
 beforeAll(async () => {
 	t = await createTestEnv();
@@ -98,6 +98,78 @@ describe("画像", () => {
 
 		await deleteRecord(formData({ id: record.id, productId: 1 }));
 		expect(await r2Keys()).toEqual([]);
+	});
+});
+
+describe("updateRecord", () => {
+	async function seedRecord(extra: Record<string, unknown> = {}) {
+		await t.db.insert(priceRecords).values({
+			productId: 1,
+			store: "旧店",
+			price: 300,
+			amount: 500,
+			quantity: 1,
+			recordedAt: "2026-09-01",
+			...extra,
+		});
+		return (await listRecords(t.db, 1))[0];
+	}
+
+	async function r2Keys(): Promise<string[]> {
+		return (await t.bucket.list()).objects.map((o) => o.key);
+	}
+
+	it("内容を更新して詳細へ戻る", async () => {
+		const record = await seedRecord();
+		const to = await expectRedirect(() =>
+			updateRecord({}, formData({ ...valid, id: record.id, store: "新店", price: 199, amount: 1200, quantity: 2, memo: "改" })),
+		);
+		expect(to).toBe("/products/1");
+		expect((await listRecords(t.db, 1))[0]).toMatchObject({ store: "新店", price: 199, amount: 1200, quantity: 2, memo: "改" });
+		expect(revalidated).toEqual(expect.arrayContaining(["/", "/products/1"]));
+	});
+
+	it("リンクとメモを空にできる", async () => {
+		const record = await seedRecord({ url: "https://example.com", memo: "元メモ" });
+		await expectRedirect(() => updateRecord({}, formData({ ...valid, id: record.id, url: "", memo: "" })));
+		const updated = (await listRecords(t.db, 1))[0];
+		expect(updated.url).toBeNull();
+		expect(updated.memo).toBeNull();
+	});
+
+	it("写真を差し替えると旧い画像は消える", async () => {
+		await t.bucket.put("products/old.jpg", new Uint8Array(3));
+		const record = await seedRecord({ imageKey: "products/old.jpg" });
+		await expectRedirect(() => updateRecord({}, formData({ ...valid, id: record.id, image: fakeImage() })));
+		const updated = (await listRecords(t.db, 1))[0];
+		expect(updated.imageKey).not.toBe("products/old.jpg");
+		expect(await r2Keys()).toEqual([updated.imageKey]);
+	});
+
+	it("removeImage を付けると写真を消す", async () => {
+		await t.bucket.put("products/old.jpg", new Uint8Array(3));
+		const record = await seedRecord({ imageKey: "products/old.jpg" });
+		await expectRedirect(() => updateRecord({}, formData({ ...valid, id: record.id, removeImage: "on" })));
+		expect((await listRecords(t.db, 1))[0].imageKey).toBeNull();
+		expect(await r2Keys()).toEqual([]);
+	});
+
+	it("写真を触らなければそのまま残る", async () => {
+		const record = await seedRecord({ imageKey: "products/keep.jpg" });
+		await expectRedirect(() => updateRecord({}, formData({ ...valid, id: record.id })));
+		expect((await listRecords(t.db, 1))[0].imageKey).toBe("products/keep.jpg");
+	});
+
+	it("存在しない記録はエラー", async () => {
+		const state = await updateRecord({}, formData({ ...valid, id: 999 }));
+		expect(state).toEqual({ error: "価格記録が見つかりません" });
+	});
+
+	it("不正な値は検証で弾き、既存の内容を変えない", async () => {
+		const record = await seedRecord();
+		const state = await updateRecord({}, formData({ ...valid, id: record.id, price: 0 }));
+		expect(state.error).toMatch(/1 円以上/);
+		expect((await listRecords(t.db, 1))[0].price).toBe(300);
 	});
 });
 
