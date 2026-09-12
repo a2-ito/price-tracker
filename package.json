@@ -16,7 +16,10 @@
     "db:migrate:local": "wrangler d1 migrations apply price-tracker-db --local",
     "db:migrate:remote": "wrangler d1 migrations apply price-tracker-db --remote",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "cf:config": "node scripts/gen-wrangler-config.mjs",
+    "cf:build": "npm run cf:config && opennextjs-cloudflare build",
+    "cf:deploy": "npm run cf:config && opennextjs-cloudflare deploy"
   },
   "dependencies": {
     "@opennextjs/cloudflare": "^1.20.3",
