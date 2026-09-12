@@ -8,6 +8,27 @@ import { getProduct, listRecords, listStores } from "@/db/queries";
 import { requireUser } from "@/lib/auth";
 import { imageUrl } from "@/lib/images";
 import { formatAmount, formatYen, unitBaseLabel, unitPrice } from "@/lib/price";
+import { isSafeExternalUrl, linkHostname } from "@/lib/url";
+
+/** リンクがあれば店舗名を外部リンクにする。危険な形式は素のテキストに落とす */
+function StoreLabel({ store, url }: { store: string; url: string | null }) {
+	if (!isSafeExternalUrl(url)) return <>{store}</>;
+	return (
+		<a
+			href={url as string}
+			target="_blank"
+			rel="noopener noreferrer nofollow"
+			title={linkHostname(url) ?? undefined}
+			className="inline-flex items-center gap-1 text-emerald-700 underline underline-offset-2 hover:text-emerald-900 dark:text-emerald-400 dark:hover:text-emerald-300"
+		>
+			{store}
+			<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+				<path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+				<path d="M15 3h6v6M10 14 21 3" />
+			</svg>
+		</a>
+	);
+}
 
 function parseId(raw: string): number | null {
 	const n = Number(raw);
@@ -46,7 +67,8 @@ export default async function ProductPage({ params }: PageProps<"/products/[id]"
 								<span className="ml-1 text-sm font-normal">/ {unitBaseLabel(product.unit)}</span>
 							</p>
 							<p className="text-sm text-emerald-800 dark:text-emerald-200">
-								{best.store} ・ {formatYen(best.price, 0)}（{formatAmount(best.amount, best.quantity, product.unit)}）・ {best.recordedAt}
+								<StoreLabel store={best.store} url={best.url} /> ・ {formatYen(best.price, 0)}（
+								{formatAmount(best.amount, best.quantity, product.unit)}）・ {best.recordedAt}
 							</p>
 						</div>
 					) : (
@@ -90,7 +112,9 @@ export default async function ProductPage({ params }: PageProps<"/products/[id]"
 								{records.map((r, i) => (
 									<tr key={r.id} className={i === 0 ? "bg-emerald-50/60 dark:bg-emerald-950/40" : undefined}>
 										<td className="px-3 py-2 font-semibold">{formatYen(unitPrice(r.price, r.amount, r.quantity, product.unit))}</td>
-										<td className="px-3 py-2">{r.store}</td>
+										<td className="px-3 py-2">
+											<StoreLabel store={r.store} url={r.url} />
+										</td>
 										<td className="px-3 py-2">{formatYen(r.price, 0)}</td>
 										<td className="px-3 py-2">{formatAmount(r.amount, r.quantity, product.unit)}</td>
 										<td className="px-3 py-2 whitespace-nowrap">{r.recordedAt}</td>
