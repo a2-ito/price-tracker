@@ -20,10 +20,8 @@ jobs:
         with:
           node-version: 24
           cache: npm
-      # npm ci は @tailwindcss/oxide-wasm32-wasi の optional 依存を lock に
-      # 要求するが、npm install はそれを記録しないため同期エラーになる。
-      # lock は尊重されるので install を使う。
-      - run: npm install --no-audit --no-fund
+      # Cloudflare Workers Builds も npm ci を使うため、ここでも ci で検証する
+      - run: npm ci --no-audit --no-fund
       - run: npm run lint
       - run: npm run typecheck
       - run: npm test
@@ -37,10 +35,8 @@ jobs:
         with:
           node-version: 24
           cache: npm
-      # npm ci は @tailwindcss/oxide-wasm32-wasi の optional 依存を lock に
-      # 要求するが、npm install はそれを記録しないため同期エラーになる。
-      # lock は尊重されるので install を使う。
-      - run: npm install --no-audit --no-fund
+      # Cloudflare Workers Builds も npm ci を使うため、ここでも ci で検証する
+      - run: npm ci --no-audit --no-fund
       # wrangler.jsonc は実 ID と公開ホスト名を含むため追跡していない。
       # ビルドの成否確認が目的なので、雛形に仮の値を入れて生成する。
       - name: Build
