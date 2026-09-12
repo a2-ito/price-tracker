@@ -44,6 +44,9 @@ Workers Builds の設定は Cloudflare ダッシュボードの **Settings > Bui
 `wrangler.jsonc` は追跡していないため、`npm run cf:config` が雛形のプレースホルダを
 これらの変数で埋めて生成する。手元に `wrangler.jsonc` がある場合は上書きしない。
 
+`@emnapi/core` と `@emnapi/runtime` は直接使わないが、Tailwind の wasm パッケージが
+要求する版が lock に記録されず `npm ci` が同期エラーになるため、明示的に依存へ加えている。
+
 スキーマ変更は自動適用しない。`npm run db:migrate:remote` を手で流してからマージする。
 
 ## セットアップ
