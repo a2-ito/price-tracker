@@ -1,0 +1,63 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  # 手動でも流せるようにしておく
+  workflow_dispatch:
+
+# デプロイ中に次が始まらないようにする。実行中のものは中断しない
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: deploy
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm install --no-audit --no-fund
+
+      # wrangler.jsonc は実 ID と公開ホスト名を含むため追跡していない。
+      # 雛形のプレースホルダを Secrets の値で埋めて組み立てる。
+      - name: Build wrangler config
+        env:
+          D1_DATABASE_ID: ${{ secrets.D1_DATABASE_ID }}
+          APP_HOSTNAME: ${{ secrets.APP_HOSTNAME }}
+        run: |
+          set -euo pipefail
+          test -n "$D1_DATABASE_ID" || { echo "D1_DATABASE_ID が未設定です"; exit 1; }
+          test -n "$APP_HOSTNAME" || { echo "APP_HOSTNAME が未設定です"; exit 1; }
+          sed -e "s|__D1_DATABASE_ID__|${D1_DATABASE_ID}|" \
+              -e "s|__APP_HOSTNAME__|${APP_HOSTNAME}|" \
+              wrangler.jsonc.example > wrangler.jsonc
+
+      - name: Deploy to Cloudflare Workers
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: npx opennextjs-cloudflare build && npx opennextjs-cloudflare deploy
+
+      # 公開 URL が応答するところまで確認する
+      - name: Smoke test
+        env:
+          APP_HOSTNAME: ${{ secrets.APP_HOSTNAME }}
+        run: |
+          set -euo pipefail
+          for i in $(seq 1 10); do
+            code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 15 "https://${APP_HOSTNAME}/login" || true)
+            if [ "$code" = "200" ]; then
+              echo "ログイン画面が応答しました (HTTP $code)"
+              exit 0
+            fi
+            echo "応答待ち... (HTTP $code)"
+            sleep 6
+          done
+          echo "デプロイ後の疎通確認に失敗しました"
+          exit 1
