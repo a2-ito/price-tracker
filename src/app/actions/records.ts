@@ -2,6 +2,7 @@
 
 import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { z } from "zod";
 import { getDb } from "@/db";
 import { priceRecords } from "@/db/schema";
@@ -53,6 +54,48 @@ export async function createRecord(_prev: ActionState, formData: FormData): Prom
 	revalidatePath("/");
 	revalidatePath(`/products/${parsed.data.productId}`);
 	return { success: "価格を記録しました" };
+}
+
+export async function updateRecord(_prev: ActionState, formData: FormData): Promise<ActionState> {
+	await requireUser();
+	const parsed = parseForm(recordSchema.extend({ id: idFromForm, removeImage: z.string().optional() }), formData);
+	if (!parsed.ok) return { error: parsed.error };
+
+	const db = await getDb();
+	const current = (await db.select().from(priceRecords).where(eq(priceRecords.id, parsed.data.id)).limit(1))[0];
+	if (!current) return { error: "価格記録が見つかりません" };
+
+	let imageKey = current.imageKey;
+	try {
+		const newKey = await storeImage(imageFile(formData));
+		if (newKey) {
+			await deleteImage(current.imageKey);
+			imageKey = newKey;
+		} else if (parsed.data.removeImage === "on") {
+			await deleteImage(current.imageKey);
+			imageKey = null;
+		}
+	} catch (e) {
+		return { error: e instanceof Error ? e.message : "画像の保存に失敗しました" };
+	}
+
+	await db
+		.update(priceRecords)
+		.set({
+			store: parsed.data.store,
+			price: parsed.data.price,
+			amount: parsed.data.amount,
+			quantity: parsed.data.quantity,
+			recordedAt: parsed.data.recordedAt,
+			url: parsed.data.url ?? null,
+			imageKey,
+			memo: parsed.data.memo ?? null,
+		})
+		.where(eq(priceRecords.id, parsed.data.id));
+
+	revalidatePath("/");
+	revalidatePath(`/products/${parsed.data.productId}`);
+	redirect(`/products/${parsed.data.productId}`);
 }
 
 export async function deleteRecord(formData: FormData): Promise<void> {
