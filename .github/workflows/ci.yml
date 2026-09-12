@@ -42,7 +42,9 @@ jobs:
       # lock は尊重されるので install を使う。
       - run: npm install --no-audit --no-fund
       # wrangler.jsonc は実 ID と公開ホスト名を含むため追跡していない。
-      # ビルドの成否確認が目的なので雛形で代用する。
-      - name: Prepare wrangler config
-        run: cp wrangler.jsonc.example wrangler.jsonc
-      - run: npx opennextjs-cloudflare build
+      # ビルドの成否確認が目的なので、雛形に仮の値を入れて生成する。
+      - name: Build
+        env:
+          D1_DATABASE_ID: placeholder-database-id
+          APP_HOSTNAME: placeholder.example.com
+        run: npm run cf:build

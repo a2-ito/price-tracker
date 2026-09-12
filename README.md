@@ -26,21 +26,23 @@ Pull Request を作ると GitHub Actions で lint・型チェック・テスト�
 gh pr merge --auto --squash <PR 番号>
 ```
 
-ワークフローから有効にすると bot がマージしたことになり、後続のデプロイが
-起動しないため、自分の認証で有効にする。
+ワークフローから有効にすると bot 名義のマージになるため、自分の認証で有効にする。
 
-main に入ると Cloudflare Workers へ自動デプロイされる。
-デプロイに必要な値はリポジトリの Secrets に登録する。
+デプロイは Cloudflare の [Workers Builds](https://developers.cloudflare.com/workers/ci-cd/builds/) が担う。
+main への push を Cloudflare が検知し、ビルドしてデプロイする。GitHub 側にデプロイ用の
+認証情報は置かない。
 
-| Secret | 内容 |
+Workers Builds の設定は Cloudflare ダッシュボードの **Settings > Build** で行う。
+
+| 項目 | 値 |
 | --- | --- |
-| `CLOUDFLARE_API_TOKEN` | Workers / D1 / R2 の編集権限を持つ API トークン |
-| `CLOUDFLARE_ACCOUNT_ID` | Cloudflare のアカウント ID |
-| `D1_DATABASE_ID` | D1 データベースの ID |
-| `APP_HOSTNAME` | 公開ホスト名 |
+| Build command | `npm run cf:build` |
+| Deploy command | `npm run cf:deploy` |
+| Git branch | `main` |
+| Build variables | `D1_DATABASE_ID`, `APP_HOSTNAME` |
 
-`wrangler.jsonc` は追跡していないため、デプロイ時に雛形のプレースホルダを
-Secrets の値で埋めて組み立てる。
+`wrangler.jsonc` は追跡していないため、`npm run cf:config` が雛形のプレースホルダを
+これらの変数で埋めて生成する。手元に `wrangler.jsonc` がある場合は上書きしない。
 
 スキーマ変更は自動適用しない。`npm run db:migrate:remote` を手で流してからマージする。
 
