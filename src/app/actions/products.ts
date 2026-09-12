@@ -12,6 +12,7 @@ import { deleteImage, storeImage } from "@/lib/images";
 
 const productSchema = z.object({
 	name: z.string().trim().min(1, "商品名を入力してください").max(100),
+	maker: optionalText,
 	categoryId: optionalIdFromForm,
 	unit: z.enum(UNITS),
 	memo: optionalText,
@@ -39,6 +40,7 @@ export async function createProduct(_prev: ActionState, formData: FormData): Pro
 		.insert(products)
 		.values({
 			name: parsed.data.name,
+			maker: parsed.data.maker ?? null,
 			categoryId: parsed.data.categoryId ?? null,
 			unit: parsed.data.unit,
 			memo: parsed.data.memo ?? null,
@@ -80,6 +82,7 @@ export async function updateProduct(_prev: ActionState, formData: FormData): Pro
 		.update(products)
 		.set({
 			name: parsed.data.name,
+			maker: parsed.data.maker ?? null,
 			categoryId: parsed.data.categoryId ?? null,
 			unit: parsed.data.unit,
 			memo: parsed.data.memo ?? null,

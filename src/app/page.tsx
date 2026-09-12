@@ -29,7 +29,10 @@ function ProductCard({ item }: { item: ProductListItem }) {
 				)}
 			</div>
 			<div className="min-w-0 flex-1">
-				<p className="text-xs text-zinc-500">{item.categoryName ?? "未分類"}</p>
+				<p className="truncate text-xs text-zinc-500">
+					{item.categoryName ?? "未分類"}
+					{item.maker && <span className="ml-1 text-zinc-400">・{item.maker}</span>}
+				</p>
 				<h2 className="truncate font-semibold">{item.name}</h2>
 				{best && perUnit !== null ? (
 					<div className="mt-1">

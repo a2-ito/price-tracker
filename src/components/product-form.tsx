@@ -11,10 +11,11 @@ import { Field, FormMessage, inputClass, LinkButton, SubmitButton } from "./ui";
 type Props = {
 	action: (prev: ActionState, formData: FormData) => Promise<ActionState>;
 	categories: Category[];
+	makers: string[];
 	product?: Product;
 };
 
-export function ProductForm({ action, categories, product }: Props) {
+export function ProductForm({ action, categories, makers, product }: Props) {
 	const [state, formAction] = useActionState(action, initialActionState);
 
 	return (
@@ -24,6 +25,15 @@ export function ProductForm({ action, categories, product }: Props) {
 
 			<Field label="商品名">
 				<input name="name" required maxLength={100} defaultValue={product?.name} className={inputClass} placeholder="例: 無調整豆乳" />
+			</Field>
+
+			<Field label="メーカー" hint="任意">
+				<input name="maker" maxLength={500} list="maker-suggestions" defaultValue={product?.maker ?? ""} className={inputClass} placeholder="例: キッコーマン" />
+				<datalist id="maker-suggestions">
+					{makers.map((m) => (
+						<option key={m} value={m} />
+					))}
+				</datalist>
 			</Field>
 
 			<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">

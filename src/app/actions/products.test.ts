@@ -41,6 +41,16 @@ describe("createProduct", () => {
 		expect(revalidated).toContain("/");
 	});
 
+	it("メーカー名を保存する", async () => {
+		await expectRedirect(() => createProduct({}, formData({ name: "豆乳", unit: "ml", maker: "  マルサン  " })));
+		expect(await getProduct(t.db, 1)).toMatchObject({ maker: "マルサン" });
+	});
+
+	it("メーカー名が空なら null", async () => {
+		await expectRedirect(() => createProduct({}, formData({ name: "豆乳", unit: "ml", maker: "" })));
+		expect((await getProduct(t.db, 1))?.maker).toBeNull();
+	});
+
 	it("カテゴリ未選択・メモ空は null で保存", async () => {
 		await expectRedirect(() => createProduct({}, formData({ name: "卵", categoryId: "", unit: "個", memo: "" })));
 		expect(await getProduct(t.db, 1)).toMatchObject({ categoryId: null, memo: null });
@@ -108,6 +118,18 @@ describe("updateProduct", () => {
 		await t.db.insert(products).values({ name: "p", unit: "g", imageKey: "products/keep.jpg" });
 		await expectRedirect(() => updateProduct({}, formData({ id: 1, name: "p2", unit: "g" })));
 		expect((await getProduct(t.db, 1))?.imageKey).toBe("products/keep.jpg");
+	});
+
+	it("メーカー名を変更できる", async () => {
+		await t.db.insert(products).values({ name: "p", unit: "g", maker: "旧メーカー" });
+		await expectRedirect(() => updateProduct({}, formData({ id: 1, name: "p", unit: "g", maker: "新メーカー" })));
+		expect((await getProduct(t.db, 1))?.maker).toBe("新メーカー");
+	});
+
+	it("メーカー名を空に戻せる", async () => {
+		await t.db.insert(products).values({ name: "p", unit: "g", maker: "メーカー" });
+		await expectRedirect(() => updateProduct({}, formData({ id: 1, name: "p", unit: "g", maker: "" })));
+		expect((await getProduct(t.db, 1))?.maker).toBeNull();
 	});
 
 	it("存在しない商品はエラー", async () => {
