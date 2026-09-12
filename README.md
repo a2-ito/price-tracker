@@ -123,6 +123,7 @@ npm run db:migrate:remote
 | Worker | `price-tracker` |
 | D1 | `price-tracker-db` |
 | R2 | `price-tracker-images` |
+| ビルド | Cloudflare Workers Builds |
 
 ログインを許可するアカウントを増やすときは、`ALLOWED_EMAILS` の Secret を
 カンマ区切りで登録し直してから再デプロイする。
