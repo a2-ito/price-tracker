@@ -6,7 +6,7 @@ import { z } from "zod";
 import { getDb } from "@/db";
 import { priceRecords } from "@/db/schema";
 import { requireUser } from "@/lib/auth";
-import { idFromForm, optionalText, parseForm, type ActionState } from "@/lib/form";
+import { idFromForm, optionalText, optionalUrl, parseForm, type ActionState } from "@/lib/form";
 
 const recordSchema = z.object({
 	productId: idFromForm,
@@ -15,6 +15,7 @@ const recordSchema = z.object({
 	amount: z.coerce.number().positive("容量は 0 より大きい値で入力してください"),
 	quantity: z.coerce.number().int().positive().default(1),
 	recordedAt: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "日付の形式が不正です"),
+	url: optionalUrl,
 	memo: optionalText,
 });
 
@@ -31,6 +32,7 @@ export async function createRecord(_prev: ActionState, formData: FormData): Prom
 		amount: parsed.data.amount,
 		quantity: parsed.data.quantity,
 		recordedAt: parsed.data.recordedAt,
+		url: parsed.data.url ?? null,
 		memo: parsed.data.memo ?? null,
 	});
 

@@ -1,0 +1,1 @@
+ALTER TABLE `price_records` ADD `url` text;

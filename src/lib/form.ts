@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { isSafeExternalUrl } from "./url";
 
 export type ActionState = { error?: string; success?: string };
 
@@ -33,4 +34,15 @@ export const optionalIdFromForm = z.preprocess(
 	(v) => (v === "" || v === undefined || v === null ? undefined : v),
 	z.coerce.number().int().positive().optional(),
 );
+/** 空欄可の外部リンク。http/https のみ受け付ける */
+export const optionalUrl = z.preprocess(
+	(v) => (typeof v === "string" && v.trim() === "" ? undefined : v),
+	z
+		.string()
+		.trim()
+		.max(2000, "リンクが長すぎます")
+		.refine(isSafeExternalUrl, "http:// または https:// で始まるリンクを入力してください")
+		.optional(),
+);
+
 export { optionalText };

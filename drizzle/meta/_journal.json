@@ -8,6 +8,13 @@
       "when": 1789191923510,
       "tag": "0000_cool_king_cobra",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1789208460095,
+      "tag": "0001_watery_amazoness",
+      "breakpoints": true
     }
   ]
 }

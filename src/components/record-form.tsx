@@ -14,7 +14,7 @@ export function RecordForm({ productId, unit, stores }: { productId: number; uni
 	// 成功したら価格まわりだけクリアして連続入力しやすくする
 	useEffect(() => {
 		if (!state.success || !formRef.current) return;
-		for (const name of ["price", "amount", "memo"]) {
+		for (const name of ["price", "amount", "url", "memo"]) {
 			const el = formRef.current.elements.namedItem(name);
 			if (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement) el.value = "";
 		}
@@ -49,6 +49,10 @@ export function RecordForm({ productId, unit, stores }: { productId: number; uni
 					</Field>
 				</div>
 			</div>
+
+			<Field label="リンク" hint="商品ページやチラシの URL（任意）">
+				<input name="url" type="url" inputMode="url" maxLength={2000} className={inputClass} placeholder="https://..." />
+			</Field>
 
 			<Field label="メモ">
 				<input name="memo" maxLength={500} className={inputClass} placeholder="セール価格、会員価格など" />

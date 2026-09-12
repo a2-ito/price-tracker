@@ -47,6 +47,8 @@ export const priceRecords = sqliteTable(
 		quantity: integer("quantity").notNull().default(1),
 		/** 記録日 YYYY-MM-DD */
 		recordedAt: text("recorded_at").notNull(),
+		/** 商品ページやチラシへのリンク（http/https のみ） */
+		url: text("url"),
 		memo: text("memo"),
 		createdAt: timestamp("created_at"),
 	},
