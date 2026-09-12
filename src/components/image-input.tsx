@@ -94,7 +94,7 @@ export function ImageInput({ name, currentUrl }: { name: string; currentUrl?: st
 	return (
 		<div className="space-y-2">
 			{preview && (
-				<img src={preview} alt="" className="h-40 w-40 rounded-md border border-zinc-200 object-cover dark:border-zinc-700" />
+				<img src={preview} alt="" className="h-40 w-40 rounded-md border border-zinc-200 bg-zinc-100 object-contain dark:border-zinc-700 dark:bg-zinc-800" />
 			)}
 			<input ref={inputRef} type="file" name={name} accept="image/*" onChange={onChange} className={inputClass} />
 			<p className="text-xs text-zinc-500">画像をコピーして、この画面で貼り付けても登録できます</p>

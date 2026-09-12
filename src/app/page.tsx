@@ -23,7 +23,7 @@ function ProductCard({ item }: { item: ProductListItem }) {
 		>
 			<div className="h-20 w-20 flex-none overflow-hidden rounded-md bg-zinc-100 dark:bg-zinc-800">
 				{item.imageKey ? (
-					<img src={imageUrl(item.imageKey)} alt={item.name} className="h-full w-full object-cover" loading="lazy" />
+					<img src={imageUrl(item.imageKey)} alt={item.name} className="h-full w-full object-contain" loading="lazy" />
 				) : (
 					<div className="flex h-full w-full items-center justify-center text-2xl text-zinc-400">📦</div>
 				)}
