@@ -52,7 +52,7 @@ export default async function ProductPage({ params }: PageProps<"/products/[id]"
 			<section className="flex flex-col gap-4 sm:flex-row">
 				<div className="h-48 w-48 flex-none overflow-hidden rounded-lg bg-zinc-100 dark:bg-zinc-800">
 					{product.imageKey ? (
-						<img src={imageUrl(product.imageKey)} alt={product.name} className="h-full w-full object-cover" />
+						<img src={imageUrl(product.imageKey)} alt={product.name} className="h-full w-full object-contain" />
 					) : (
 						<div className="flex h-full w-full items-center justify-center text-5xl text-zinc-400">📦</div>
 					)}
@@ -128,7 +128,7 @@ export default async function ProductPage({ params }: PageProps<"/products/[id]"
 														src={imageUrl(r.imageKey)}
 														alt=""
 														loading="lazy"
-														className="h-10 w-10 rounded border border-zinc-200 object-cover dark:border-zinc-700"
+														className="h-10 w-10 rounded border border-zinc-200 bg-zinc-100 object-contain dark:border-zinc-700 dark:bg-zinc-800"
 													/>
 												</a>
 											)}
