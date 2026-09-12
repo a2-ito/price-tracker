@@ -1,7 +1,7 @@
 import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { createTestEnv, type TestEnv } from "@/test/d1";
-import { getProduct, getRecord, listCategories, listProducts, listRecords, listStores } from "./queries";
+import { getProduct, getRecord, listCategories, listMakers, listProducts, listRecords, listStores } from "./queries";
 import { categories, priceRecords, products } from "./schema";
 
 let t: TestEnv;
@@ -121,6 +121,22 @@ describe("listStores", () => {
 		// SQLite の既定照合は UTF-8 のバイト順（ASCII → カタカナ → 漢字）
 		expect(await listStores(t.db)).toEqual(["OKストア", "コンビニ", "ライフ", "業務スーパー"]);
 		expect(new Set(await listStores(t.db)).size).toBe(4);
+	});
+});
+
+describe("listMakers", () => {
+	it("重複なしで返し、未設定は含めない", async () => {
+		await t.db.insert(products).values([
+			{ name: "a", unit: "g", maker: "Kikkoman" },
+			{ name: "b", unit: "g", maker: "Kikkoman" },
+			{ name: "c", unit: "g", maker: "Ajinomoto" },
+			{ name: "d", unit: "g" },
+		]);
+		expect(await listMakers(t.db)).toEqual(["Ajinomoto", "Kikkoman"]);
+	});
+
+	it("1 件も無ければ空", async () => {
+		expect(await listMakers(t.db)).toEqual([]);
 	});
 });
 

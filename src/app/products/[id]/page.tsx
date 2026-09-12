@@ -60,6 +60,7 @@ export default async function ProductPage({ params }: PageProps<"/products/[id]"
 				<div className="flex-1 space-y-2">
 					<p className="text-sm text-zinc-500">{product.categoryName ?? "未分類"}</p>
 					<h1 className="text-2xl font-bold">{product.name}</h1>
+					{product.maker && <p className="text-sm text-zinc-600 dark:text-zinc-400">{product.maker}</p>}
 					{best ? (
 						<div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3 dark:border-emerald-900 dark:bg-emerald-950">
 							<p className="text-xs font-medium text-emerald-700 dark:text-emerald-300">最安値</p>

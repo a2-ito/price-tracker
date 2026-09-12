@@ -1,4 +1,4 @@
-import { asc, desc, eq, like, sql } from "drizzle-orm";
+import { asc, desc, eq, isNotNull, like, sql } from "drizzle-orm";
 import type { Db } from "./index";
 import { categories, priceRecords, products, type Category, type PriceRecord, type Product } from "./schema";
 
@@ -77,6 +77,16 @@ export async function listRecords(db: Db, productId: number): Promise<PriceRecor
 export async function getRecord(db: Db, id: number): Promise<PriceRecord | null> {
 	const rows = await db.select().from(priceRecords).where(eq(priceRecords.id, id)).limit(1);
 	return rows[0] ?? null;
+}
+
+/** メーカー名のサジェスト用に既存の値を重複なしで返す */
+export async function listMakers(db: Db): Promise<string[]> {
+	const rows = await db
+		.selectDistinct({ maker: products.maker })
+		.from(products)
+		.where(isNotNull(products.maker))
+		.orderBy(asc(products.maker));
+	return rows.map((r) => r.maker).filter((m): m is string => m !== null && m !== "");
 }
 
 /** 店舗名のサジェスト用に既存の店舗名を重複なしで返す */

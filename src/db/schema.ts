@@ -21,6 +21,8 @@ export const products = sqliteTable(
 	{
 		id: integer("id").primaryKey({ autoIncrement: true }),
 		name: text("name").notNull(),
+		/** メーカー・ブランド名 */
+		maker: text("maker"),
 		categoryId: integer("category_id").references(() => categories.id, { onDelete: "set null" }),
 		unit: text("unit", { enum: UNITS }).notNull().default("g"),
 		imageKey: text("image_key"),
