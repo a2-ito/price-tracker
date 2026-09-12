@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { extractImageFile, namePastedImage } from "@/lib/clipboard";
 import { inputClass } from "./ui";
 
 const MAX_EDGE = 1200;
@@ -28,26 +29,66 @@ async function shrinkImage(file: File): Promise<File> {
 export function ImageInput({ name, currentUrl }: { name: string; currentUrl?: string | null }) {
 	const [preview, setPreview] = useState<string | null>(currentUrl ?? null);
 	const [busy, setBusy] = useState(false);
+	const [notice, setNotice] = useState<string | null>(null);
+	const inputRef = useRef<HTMLInputElement>(null);
+	// プレビュー用に作った URL は差し替え時に解放する
+	const objectUrlRef = useRef<string | null>(null);
 
-	async function onChange(e: React.ChangeEvent<HTMLInputElement>) {
-		const input = e.currentTarget;
-		const file = input.files?.[0];
-		if (!file) return;
-		setBusy(true);
-		try {
-			const shrunk = await shrinkImage(file);
-			if (shrunk !== file) {
+	const showPreview = useCallback((file: File) => {
+		if (objectUrlRef.current) URL.revokeObjectURL(objectUrlRef.current);
+		const url = URL.createObjectURL(file);
+		objectUrlRef.current = url;
+		setPreview(url);
+	}, []);
+
+	useEffect(() => {
+		return () => {
+			if (objectUrlRef.current) URL.revokeObjectURL(objectUrlRef.current);
+		};
+	}, []);
+
+	/** 受け取ったファイルを縮小し、送信対象の input に載せる */
+	const acceptFile = useCallback(
+		async (file: File, source: "select" | "paste") => {
+			const input = inputRef.current;
+			if (!input) return;
+
+			setBusy(true);
+			setNotice(null);
+			try {
+				const shrunk = await shrinkImage(file);
+				// input.files はコードから直接代入できないため DataTransfer を経由する
 				const dt = new DataTransfer();
 				dt.items.add(shrunk);
 				input.files = dt.files;
+				showPreview(shrunk);
+				if (source === "paste") setNotice("貼り付けた画像を取り込みました");
+			} catch (err) {
+				console.error("画像の取り込みに失敗しました", err);
+				showPreview(file);
+			} finally {
+				setBusy(false);
 			}
-			setPreview(URL.createObjectURL(shrunk));
-		} catch (err) {
-			console.error("画像の縮小に失敗しました", err);
-			setPreview(URL.createObjectURL(file));
-		} finally {
-			setBusy(false);
+		},
+		[showPreview],
+	);
+
+	// どこにフォーカスがあっても貼り付けを受け取れるようにする。
+	// 画像を含まない貼り付けは素通しするので、文字入力の邪魔はしない。
+	useEffect(() => {
+		function onPaste(e: ClipboardEvent) {
+			const file = extractImageFile(e.clipboardData);
+			if (!file) return;
+			e.preventDefault();
+			void acceptFile(namePastedImage(file), "paste");
 		}
+		window.addEventListener("paste", onPaste);
+		return () => window.removeEventListener("paste", onPaste);
+	}, [acceptFile]);
+
+	function onChange(e: React.ChangeEvent<HTMLInputElement>) {
+		const file = e.currentTarget.files?.[0];
+		if (file) void acceptFile(file, "select");
 	}
 
 	return (
@@ -55,8 +96,10 @@ export function ImageInput({ name, currentUrl }: { name: string; currentUrl?: st
 			{preview && (
 				<img src={preview} alt="" className="h-40 w-40 rounded-md border border-zinc-200 object-cover dark:border-zinc-700" />
 			)}
-			<input type="file" name={name} accept="image/*" onChange={onChange} className={inputClass} />
-			{busy && <p className="text-xs text-zinc-500">画像を縮小中…</p>}
+			<input ref={inputRef} type="file" name={name} accept="image/*" onChange={onChange} className={inputClass} />
+			<p className="text-xs text-zinc-500">画像をコピーして、この画面で貼り付けても登録できます</p>
+			{busy && <p className="text-xs text-zinc-500">画像を取り込み中…</p>}
+			{notice && <p className="text-xs text-emerald-700 dark:text-emerald-400">{notice}</p>}
 		</div>
 	);
 }
