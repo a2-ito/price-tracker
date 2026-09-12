@@ -104,6 +104,7 @@ export default async function ProductPage({ params }: PageProps<"/products/[id]"
 									<th className="px-3 py-2">価格</th>
 									<th className="px-3 py-2">容量</th>
 									<th className="px-3 py-2">日付</th>
+									<th className="px-3 py-2">写真</th>
 									<th className="px-3 py-2">メモ</th>
 									<th className="px-3 py-2"></th>
 								</tr>
@@ -118,6 +119,18 @@ export default async function ProductPage({ params }: PageProps<"/products/[id]"
 										<td className="px-3 py-2">{formatYen(r.price, 0)}</td>
 										<td className="px-3 py-2">{formatAmount(r.amount, r.quantity, product.unit)}</td>
 										<td className="px-3 py-2 whitespace-nowrap">{r.recordedAt}</td>
+										<td className="px-3 py-2">
+											{r.imageKey && (
+												<a href={imageUrl(r.imageKey)} target="_blank" rel="noopener noreferrer" title="拡大して表示">
+													<img
+														src={imageUrl(r.imageKey)}
+														alt=""
+														loading="lazy"
+														className="h-10 w-10 rounded border border-zinc-200 object-cover dark:border-zinc-700"
+													/>
+												</a>
+											)}
+										</td>
 										<td className="px-3 py-2 text-zinc-500">{r.memo}</td>
 										<td className="px-3 py-2 text-right">
 											<ConfirmForm action={deleteRecord} message="この価格記録を削除しますか？">

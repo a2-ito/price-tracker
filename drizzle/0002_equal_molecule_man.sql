@@ -1,0 +1,1 @@
+ALTER TABLE `price_records` ADD `image_key` text;

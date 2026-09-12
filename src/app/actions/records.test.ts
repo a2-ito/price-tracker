@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { revalidated } from "@/test/action-mocks";
-import { createTestEnv, formData, type TestEnv } from "@/test/d1";
+import { createTestEnv, fakeImage, formData, type TestEnv } from "@/test/d1";
 import { listRecords } from "@/db/queries";
 import { isForeignKeyViolation } from "@/lib/errors";
 import { priceRecords, products } from "@/db/schema";
@@ -63,6 +63,41 @@ describe("createRecord", () => {
 
 	it("存在しない商品への記録は外部キー制約で失敗する", async () => {
 		await expect(createRecord({}, formData({ ...valid, productId: 999 }))).rejects.toSatisfy(isForeignKeyViolation);
+	});
+});
+
+describe("画像", () => {
+	async function r2Keys(): Promise<string[]> {
+		return (await t.bucket.list()).objects.map((o) => o.key);
+	}
+
+	it("写真を R2 に保存してキーを持つ", async () => {
+		await createRecord({}, formData({ ...valid, image: fakeImage("image/png", 40, "tag.png") }));
+		const record = (await listRecords(t.db, 1))[0];
+		expect(record.imageKey).toMatch(/^products\/.+\.png$/);
+		expect(await r2Keys()).toEqual([record.imageKey]);
+	});
+
+	it("写真なしなら null で、R2 にも置かない", async () => {
+		await createRecord({}, formData(valid));
+		expect((await listRecords(t.db, 1))[0].imageKey).toBeNull();
+		expect(await r2Keys()).toEqual([]);
+	});
+
+	it("対応外の形式は拒否し、記録も作らない", async () => {
+		const state = await createRecord({}, formData({ ...valid, image: fakeImage("application/pdf", 10, "x.pdf") }));
+		expect(state.error).toMatch(/対応していない画像形式/);
+		expect(await listRecords(t.db, 1)).toEqual([]);
+		expect(await r2Keys()).toEqual([]);
+	});
+
+	it("記録を消すと写真も R2 から消える", async () => {
+		await createRecord({}, formData({ ...valid, image: fakeImage() }));
+		const record = (await listRecords(t.db, 1))[0];
+		expect(await r2Keys()).toEqual([record.imageKey]);
+
+		await deleteRecord(formData({ id: record.id, productId: 1 }));
+		expect(await r2Keys()).toEqual([]);
 	});
 });
 

@@ -129,6 +129,21 @@ describe("deleteProduct", () => {
 		expect(await r2Keys()).toEqual([]);
 	});
 
+	it("紐づく価格記録の写真も R2 から消える", async () => {
+		await t.bucket.put("products/product.jpg", new Uint8Array(3));
+		await t.bucket.put("products/record-a.jpg", new Uint8Array(3));
+		await t.bucket.put("products/record-b.jpg", new Uint8Array(3));
+		await t.db.insert(products).values({ name: "p", unit: "g", imageKey: "products/product.jpg" });
+		await t.db.insert(priceRecords).values([
+			{ productId: 1, store: "a", price: 100, amount: 100, quantity: 1, recordedAt: "2026-09-12", imageKey: "products/record-a.jpg" },
+			{ productId: 1, store: "b", price: 200, amount: 100, quantity: 1, recordedAt: "2026-09-12", imageKey: "products/record-b.jpg" },
+			{ productId: 1, store: "c", price: 300, amount: 100, quantity: 1, recordedAt: "2026-09-12" },
+		]);
+
+		await expectRedirect(() => deleteProduct(formData({ id: 1 })));
+		expect(await r2Keys()).toEqual([]);
+	});
+
 	it("存在しない商品でもエラーにならず一覧へ戻る", async () => {
 		expect(await expectRedirect(() => deleteProduct(formData({ id: 42 })))).toBe("/");
 	});
