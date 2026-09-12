@@ -20,13 +20,13 @@
 
 Pull Request を作ると GitHub Actions で lint・型チェック・テスト・ビルドが走る。
 
-自動マージは PR ごとに有効にする。
+自分が出した PR には自動マージが予約され、検証が通りしだい squash でマージされる。
 
-```sh
-gh pr merge --auto --squash <PR 番号>
-```
+fork からの PR と、リポジトリ所有者以外が出した PR は対象外にしている。外部の変更が
+人の目を通さず本番へ出るのを防ぐため。あわせて、外部からの PR は検証の実行自体に
+承認を必要とする設定にしている。
 
-ワークフローから有効にすると bot 名義のマージになるため、自分の認証で有効にする。
+下書きの PR も対象外なので、まだ入れたくないものは Draft にしておく。
 
 デプロイは Cloudflare の [Workers Builds](https://developers.cloudflare.com/workers/ci-cd/builds/) が担う。
 main への push を Cloudflare が検知し、ビルドしてデプロイする。GitHub 側にデプロイ用の
