@@ -16,10 +16,25 @@
 - 配色の切り替え（ライト / ダーク / システム追従）。選択は端末に保存し、描画前に適用するのでリロード時もちらつかない
 - 画像はブラウザ側で長辺 1200px に縮小してから R2 に保存
 
-## CI
+## CI / CD
 
 Pull Request を作ると GitHub Actions で lint・型チェック・テスト・ビルドが走る。
 すべて通ると自動で squash マージされる。
+
+main に入ると Cloudflare Workers へ自動デプロイされ、公開 URL の応答を確認して終わる。
+デプロイに必要な値はリポジトリの Secrets に登録する。
+
+| Secret | 内容 |
+| --- | --- |
+| `CLOUDFLARE_API_TOKEN` | Workers / D1 / R2 の編集権限を持つ API トークン |
+| `CLOUDFLARE_ACCOUNT_ID` | Cloudflare のアカウント ID |
+| `D1_DATABASE_ID` | D1 データベースの ID |
+| `APP_HOSTNAME` | 公開ホスト名 |
+
+`wrangler.jsonc` は追跡していないため、デプロイ時に雛形のプレースホルダを
+Secrets の値で埋めて組み立てる。
+
+スキーマ変更は自動適用しない。`npm run db:migrate:remote` を手で流してからマージする。
 
 ## セットアップ
 
@@ -33,7 +48,7 @@ Pull Request を作ると GitHub Actions で lint・型チェック・テスト�
 ### 2. ローカル環境変数
 
 ```sh
-cp wrangler.jsonc.example wrangler.jsonc   # D1 の ID と公開ホスト名を記入する
+cp wrangler.jsonc.example wrangler.jsonc   # __D1_DATABASE_ID__ と __APP_HOSTNAME__ を書き換える
 cp .dev.vars.example .dev.vars
 openssl rand -base64 32   # AUTH_SECRET に貼る
 ```

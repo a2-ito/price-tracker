@@ -25,7 +25,7 @@
 		{
 			"binding": "DB",
 			"database_name": "price-tracker-db",
-			"database_id": "<D1 データベースの ID>",
+			"database_id": "__D1_DATABASE_ID__",
 			"migrations_dir": "drizzle"
 		}
 	],
@@ -42,7 +42,7 @@
 	// 含められずログインできないため無効にする
 	"routes": [
 		{
-			"pattern": "<公開したいホスト名>",
+			"pattern": "__APP_HOSTNAME__",
 			"custom_domain": true
 		}
 	],
