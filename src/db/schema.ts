@@ -49,6 +49,8 @@ export const priceRecords = sqliteTable(
 		recordedAt: text("recorded_at").notNull(),
 		/** 商品ページやチラシへのリンク（http/https のみ） */
 		url: text("url"),
+		/** 値札やレシートの写真。R2 のオブジェクトキー */
+		imageKey: text("image_key"),
 		memo: text("memo"),
 		createdAt: timestamp("created_at"),
 	},

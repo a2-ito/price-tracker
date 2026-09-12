@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { getDb } from "@/db";
-import { products, UNITS } from "@/db/schema";
+import { priceRecords, products, UNITS } from "@/db/schema";
 import { requireUser } from "@/lib/auth";
 import { idFromForm, optionalIdFromForm, optionalText, parseForm, type ActionState } from "@/lib/form";
 import { deleteImage, storeImage } from "@/lib/images";
@@ -101,8 +101,12 @@ export async function deleteProduct(formData: FormData): Promise<void> {
 	const db = await getDb();
 	const current = (await db.select().from(products).where(eq(products.id, parsed.data.id)).limit(1))[0];
 	if (current) {
-		await deleteImage(current.imageKey);
-		// price_records は ON DELETE CASCADE
+		// 行は ON DELETE CASCADE で消えるが、R2 の画像は残るため先に片付ける
+		const records = await db
+			.select({ imageKey: priceRecords.imageKey })
+			.from(priceRecords)
+			.where(eq(priceRecords.productId, parsed.data.id));
+		await Promise.all([current.imageKey, ...records.map((r) => r.imageKey)].map((key) => deleteImage(key)));
 		await db.delete(products).where(eq(products.id, parsed.data.id));
 	}
 	revalidatePath("/");

@@ -7,6 +7,7 @@ import { getDb } from "@/db";
 import { priceRecords } from "@/db/schema";
 import { requireUser } from "@/lib/auth";
 import { idFromForm, optionalText, optionalUrl, parseForm, type ActionState } from "@/lib/form";
+import { deleteImage, storeImage } from "@/lib/images";
 
 const recordSchema = z.object({
 	productId: idFromForm,
@@ -19,10 +20,22 @@ const recordSchema = z.object({
 	memo: optionalText,
 });
 
+function imageFile(formData: FormData): File | null {
+	const value = formData.get("image");
+	return value instanceof File ? value : null;
+}
+
 export async function createRecord(_prev: ActionState, formData: FormData): Promise<ActionState> {
 	await requireUser();
 	const parsed = parseForm(recordSchema, formData);
 	if (!parsed.ok) return { error: parsed.error };
+
+	let imageKey: string | null = null;
+	try {
+		imageKey = await storeImage(imageFile(formData));
+	} catch (e) {
+		return { error: e instanceof Error ? e.message : "画像の保存に失敗しました" };
+	}
 
 	const db = await getDb();
 	await db.insert(priceRecords).values({
@@ -33,6 +46,7 @@ export async function createRecord(_prev: ActionState, formData: FormData): Prom
 		quantity: parsed.data.quantity,
 		recordedAt: parsed.data.recordedAt,
 		url: parsed.data.url ?? null,
+		imageKey,
 		memo: parsed.data.memo ?? null,
 	});
 
@@ -47,6 +61,9 @@ export async function deleteRecord(formData: FormData): Promise<void> {
 	if (!parsed.ok) throw new Error(parsed.error);
 
 	const db = await getDb();
+	// 行を消す前に R2 の画像も片付ける
+	const current = (await db.select().from(priceRecords).where(eq(priceRecords.id, parsed.data.id)).limit(1))[0];
+	if (current) await deleteImage(current.imageKey);
 	await db.delete(priceRecords).where(eq(priceRecords.id, parsed.data.id));
 	revalidatePath("/");
 	revalidatePath(`/products/${parsed.data.productId}`);

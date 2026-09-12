@@ -1,8 +1,9 @@
 "use client";
 
-import { useActionState, useEffect, useRef } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 import { createRecord } from "@/app/actions/records";
 import type { Unit } from "@/db/schema";
+import { ImageInput } from "./image-input";
 import { initialActionState } from "@/lib/form";
 import { todayIso } from "@/lib/price";
 import { Field, FormMessage, inputClass, SubmitButton } from "./ui";
@@ -10,6 +11,8 @@ import { Field, FormMessage, inputClass, SubmitButton } from "./ui";
 export function RecordForm({ productId, unit, stores }: { productId: number; unit: Unit; stores: string[] }) {
 	const [state, formAction] = useActionState(createRecord, initialActionState);
 	const formRef = useRef<HTMLFormElement>(null);
+	// 記録するたびに画像入力を初期状態へ戻すための鍵
+	const [imageKey, setImageKey] = useState(0);
 
 	// 成功したら価格まわりだけクリアして連続入力しやすくする
 	useEffect(() => {
@@ -18,6 +21,7 @@ export function RecordForm({ productId, unit, stores }: { productId: number; uni
 			const el = formRef.current.elements.namedItem(name);
 			if (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement) el.value = "";
 		}
+		setImageKey((n) => n + 1);
 	}, [state]);
 
 	return (
@@ -56,6 +60,10 @@ export function RecordForm({ productId, unit, stores }: { productId: number; uni
 
 			<Field label="メモ">
 				<input name="memo" maxLength={500} className={inputClass} placeholder="セール価格、会員価格など" />
+			</Field>
+
+			<Field label="写真（値札やレシートなど・任意）">
+				<ImageInput key={imageKey} name="image" />
 			</Field>
 
 			<SubmitButton pendingText="記録中…">価格を記録する</SubmitButton>
