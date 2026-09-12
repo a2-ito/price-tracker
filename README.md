@@ -19,9 +19,17 @@
 ## CI / CD
 
 Pull Request を作ると GitHub Actions で lint・型チェック・テスト・ビルドが走る。
-すべて通ると自動で squash マージされる。
 
-main に入ると Cloudflare Workers へ自動デプロイされ、公開 URL の応答を確認して終わる。
+自動マージは PR ごとに有効にする。
+
+```sh
+gh pr merge --auto --squash <PR 番号>
+```
+
+ワークフローから有効にすると bot がマージしたことになり、後続のデプロイが
+起動しないため、自分の認証で有効にする。
+
+main に入ると Cloudflare Workers へ自動デプロイされる。
 デプロイに必要な値はリポジトリの Secrets に登録する。
 
 | Secret | 内容 |
