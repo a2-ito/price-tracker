@@ -33,14 +33,16 @@ export function unitPrice({ price, amount, count = 1, quantity = 1, unit }: Pric
 }
 
 /**
- * 商品の荷姿を表す文字列。
- * 入数が 1 なら容量だけ、2 以上なら内訳と合計を返す。
+ * 商品の荷姿を表す文字列。入数は常に示す。
+ * 入数が 2 以上のときだけ合計を添える。
+ * 入数の単位は付けない。容量の単位が「個」などの場合に重複して読みにくくなるため。
  */
 export function formatPackage(amount: number, count: number, unit: Unit): string {
 	const each = `${amount.toLocaleString("ja-JP")}${unit}`;
-	if (count <= 1) return each;
-	const total = packageAmount(amount, count).toLocaleString("ja-JP");
-	return `${each} × ${count} = ${total}${unit}`;
+	const times = Math.max(1, count);
+	if (times <= 1) return `${each} × 1`;
+	const total = packageAmount(amount, times).toLocaleString("ja-JP");
+	return `${each} × ${times} = ${total}${unit}`;
 }
 
 export function formatYen(value: number, fractionDigits = 1): string {
