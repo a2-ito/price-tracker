@@ -1,9 +1,11 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import Link from "next/link";
+import { ServiceWorkerRegister } from "@/components/service-worker";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { auth, signOut } from "@/lib/auth";
 import { THEME_INIT_SCRIPT } from "@/lib/theme";
+import { THEME_COLOR } from "./manifest";
 import "./globals.css";
 
 const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
@@ -12,6 +14,16 @@ const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"]
 export const metadata: Metadata = {
 	title: "最安値メモ",
 	description: "商品の最安値と容量あたり単価を記録するアプリ",
+	// iOS にはマニフェストだけでは伝わらないため、ホーム画面用の指定を明示する
+	appleWebApp: { capable: true, title: "最安値メモ", statusBarStyle: "default" },
+};
+
+export const viewport: Viewport = {
+	// アドレスバーの色。ライトはブランドカラー、ダークは背景と揃える
+	themeColor: [
+		{ media: "(prefers-color-scheme: light)", color: THEME_COLOR },
+		{ media: "(prefers-color-scheme: dark)", color: "#09090b" },
+	],
 };
 
 async function Header() {
@@ -59,11 +71,13 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
 		<html lang="ja" suppressHydrationWarning>
 			<head>
 				<link rel="icon" href="/favicon.svg" type="image/svg+xml"></link>
+				<link rel="apple-touch-icon" href="/apple-touch-icon.png"></link>
 				<script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
 			</head>
 			<body className={`${geistSans.variable} ${geistMono.variable} min-h-screen antialiased`}>
 				<Header />
 				<main className="mx-auto max-w-4xl px-4 py-6">{children}</main>
+				<ServiceWorkerRegister />
 			</body>
 		</html>
 	);
