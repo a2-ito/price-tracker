@@ -36,11 +36,20 @@ function ProductCard({ item }: { item: ProductListItem }) {
 				<h2 className="truncate font-semibold">{item.name}</h2>
 				{best && perUnit !== null ? (
 					<div className="mt-1">
-						<p className="text-lg font-bold text-emerald-700 dark:text-emerald-400">
-							{formatYen(perUnit)} <span className="text-xs font-normal text-zinc-500">/ {unitBaseLabel(item.unit)}</span>
+						<p className="flex flex-wrap items-baseline gap-x-2">
+							<span className="text-lg font-bold text-emerald-700 dark:text-emerald-400">
+								{formatYen(perUnit)}
+								<span className="ml-0.5 text-xs font-normal text-zinc-500">/ {unitBaseLabel(item.unit)}</span>
+							</span>
+							<span className="text-base font-semibold text-zinc-900 dark:text-zinc-100">
+								{formatYen(best.price, 0)}
+								<span className="ml-0.5 text-xs font-normal text-zinc-500">
+									/ {formatAmount(best.amount, best.quantity, item.unit)}
+								</span>
+							</span>
 						</p>
 						<p className="truncate text-xs text-zinc-500">
-							{best.store} ・ {formatYen(best.price, 0)}（{formatAmount(best.amount, best.quantity, item.unit)}）・ {best.recordedAt}
+							{best.store} ・ {best.recordedAt}
 						</p>
 					</div>
 				) : (
