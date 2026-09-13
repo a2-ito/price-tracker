@@ -8,7 +8,8 @@ import { getDb } from "@/db";
 import { priceRecords, products, UNITS } from "@/db/schema";
 import { requireUser } from "@/lib/auth";
 import { idFromForm, optionalIdFromForm, optionalText, parseForm, type ActionState } from "@/lib/form";
-import { deleteImage, storeImage } from "@/lib/images";
+import { releaseImage } from "@/lib/image-cleanup";
+import { storeImage } from "@/lib/images";
 
 const productSchema = z.object({
 	name: z.string().trim().min(1, "商品名を入力してください").max(100),
@@ -71,13 +72,8 @@ export async function updateProduct(_prev: ActionState, formData: FormData): Pro
 	let imageKey = current.imageKey;
 	try {
 		const newKey = await storeImage(imageFile(formData));
-		if (newKey) {
-			await deleteImage(current.imageKey);
-			imageKey = newKey;
-		} else if (parsed.data.removeImage === "on") {
-			await deleteImage(current.imageKey);
-			imageKey = null;
-		}
+		if (newKey) imageKey = newKey;
+		else if (parsed.data.removeImage === "on") imageKey = null;
 	} catch (e) {
 		return { error: e instanceof Error ? e.message : "画像の保存に失敗しました" };
 	}
@@ -97,6 +93,9 @@ export async function updateProduct(_prev: ActionState, formData: FormData): Pro
 		})
 		.where(eq(products.id, parsed.data.id));
 
+	// 参照が切れたことを確かめてから消すため、DB を更新したあとに片付ける
+	if (imageKey !== current.imageKey) await releaseImage(db, current.imageKey);
+
 	revalidatePath("/");
 	revalidatePath(`/products/${parsed.data.id}`);
 	redirect(`/products/${parsed.data.id}`);
@@ -110,13 +109,16 @@ export async function deleteProduct(formData: FormData): Promise<void> {
 	const db = await getDb();
 	const current = (await db.select().from(products).where(eq(products.id, parsed.data.id)).limit(1))[0];
 	if (current) {
-		// 行は ON DELETE CASCADE で消えるが、R2 の画像は残るため先に片付ける
 		const records = await db
 			.select({ imageKey: priceRecords.imageKey })
 			.from(priceRecords)
 			.where(eq(priceRecords.productId, parsed.data.id));
-		await Promise.all([current.imageKey, ...records.map((r) => r.imageKey)].map((key) => deleteImage(key)));
+		// 行は ON DELETE CASCADE で消えるが R2 の画像は残る。
+		// 他の商品と共有しているキーを巻き添えにしないよう、行を消したあとに片付ける
 		await db.delete(products).where(eq(products.id, parsed.data.id));
+		for (const key of [current.imageKey, ...records.map((r) => r.imageKey)]) {
+			await releaseImage(db, key);
+		}
 	}
 	revalidatePath("/");
 	redirect("/");
