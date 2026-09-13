@@ -4,7 +4,7 @@ import { useActionState, useEffect, useRef, useState } from "react";
 import type { PriceRecord, Unit } from "@/db/schema";
 import { initialActionState, type ActionState } from "@/lib/form";
 import { imageUrl } from "@/lib/images";
-import { todayIso } from "@/lib/price";
+import { formatAmount, todayIso } from "@/lib/price";
 import { ImageInput } from "./image-input";
 import { Field, FormMessage, inputClass, LinkButton, SubmitButton } from "./ui";
 
@@ -12,12 +12,14 @@ type Props = {
 	action: (prev: ActionState, formData: FormData) => Promise<ActionState>;
 	productId: number;
 	unit: Unit;
+	/** 商品 1 個あたりの容量。表示にのみ使う */
+	amount: number;
 	stores: string[];
 	/** 渡すと編集フォームになる */
 	record?: PriceRecord;
 };
 
-export function RecordForm({ action, productId, unit, stores, record }: Props) {
+export function RecordForm({ action, productId, unit, amount, stores, record }: Props) {
 	const [state, formAction] = useActionState(action, initialActionState);
 	const formRef = useRef<HTMLFormElement>(null);
 	// 記録するたびに画像入力を初期状態へ戻すための鍵
@@ -27,7 +29,7 @@ export function RecordForm({ action, productId, unit, stores, record }: Props) {
 	// 新規登録が成功したら入力欄を空にして、続けて別の店を記録できるようにする
 	useEffect(() => {
 		if (isEdit || !state.success || !formRef.current) return;
-		for (const name of ["price", "amount", "url", "memo"]) {
+		for (const name of ["price", "url", "memo"]) {
 			const el = formRef.current.elements.namedItem(name);
 			if (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement) el.value = "";
 		}
@@ -55,14 +57,9 @@ export function RecordForm({ action, productId, unit, stores, record }: Props) {
 				<Field label="税込価格（円）">
 					<input name="price" type="number" inputMode="numeric" min={1} step={1} required defaultValue={record?.price} className={inputClass} />
 				</Field>
-				<div className="grid grid-cols-2 gap-3">
-					<Field label={`容量（${unit}）`}>
-						<input name="amount" type="number" inputMode="decimal" min={0.01} step="any" required defaultValue={record?.amount} className={inputClass} />
-					</Field>
-					<Field label="個数" hint="まとめ売りの場合">
-						<input name="quantity" type="number" inputMode="numeric" min={1} step={1} defaultValue={record?.quantity ?? 1} className={inputClass} />
-					</Field>
-				</div>
+				<Field label="個数" hint={`1 個 = ${formatAmount(amount, 1, unit)}。まとめ買いした場合は個数を増やす`}>
+					<input name="quantity" type="number" inputMode="numeric" min={1} step={1} defaultValue={record?.quantity ?? 1} className={inputClass} />
+				</Field>
 			</div>
 
 			<Field label="リンク" hint="商品ページやチラシの URL（任意）">

@@ -3,9 +3,9 @@ import type { Db } from "./index";
 import { categories, priceRecords, products, type Category, type PriceRecord, type Product } from "./schema";
 
 /** 単価（1 unit あたり）の SQL 式。price_records のカラムを参照する */
-const unitCostExpr = sql<number>`${priceRecords.price} * 1.0 / (${priceRecords.amount} * ${priceRecords.quantity})`;
+const unitCostExpr = sql<number>`${priceRecords.price} * 1.0 / ((SELECT p.amount FROM products p WHERE p.id = ${priceRecords.productId}) * ${priceRecords.quantity})`;
 
-export type BestRecord = Pick<PriceRecord, "id" | "store" | "price" | "amount" | "quantity" | "recordedAt">;
+export type BestRecord = Pick<PriceRecord, "id" | "store" | "price" | "quantity" | "recordedAt">;
 export type ProductListItem = Product & { categoryName: string | null; best: BestRecord | null };
 
 export async function listCategories(db: Db): Promise<Category[]> {
@@ -20,7 +20,7 @@ export async function listProducts(
 	const bestId = sql`(
 		SELECT r.id FROM price_records r
 		WHERE r.product_id = ${products.id}
-		ORDER BY r.price * 1.0 / (r.amount * r.quantity) ASC, r.recorded_at DESC, r.id DESC
+		ORDER BY r.price * 1.0 / (${products.amount} * r.quantity) ASC, r.recorded_at DESC, r.id DESC
 		LIMIT 1
 	)`;
 
@@ -35,7 +35,6 @@ export async function listProducts(
 			bestId: priceRecords.id,
 			bestStore: priceRecords.store,
 			bestPrice: priceRecords.price,
-			bestAmount: priceRecords.amount,
 			bestQuantity: priceRecords.quantity,
 			bestRecordedAt: priceRecords.recordedAt,
 		})
@@ -49,8 +48,8 @@ export async function listProducts(
 		...r.product,
 		categoryName: r.categoryName,
 		best:
-			r.bestId !== null && r.bestStore !== null && r.bestPrice !== null && r.bestAmount !== null && r.bestQuantity !== null && r.bestRecordedAt !== null
-				? { id: r.bestId, store: r.bestStore, price: r.bestPrice, amount: r.bestAmount, quantity: r.bestQuantity, recordedAt: r.bestRecordedAt }
+			r.bestId !== null && r.bestStore !== null && r.bestPrice !== null && r.bestQuantity !== null && r.bestRecordedAt !== null
+				? { id: r.bestId, store: r.bestStore, price: r.bestPrice, quantity: r.bestQuantity, recordedAt: r.bestRecordedAt }
 				: null,
 	}));
 }

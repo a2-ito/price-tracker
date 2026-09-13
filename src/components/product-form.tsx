@@ -56,6 +56,9 @@ export function ProductForm({ action, categories, makers, product }: Props) {
 						))}
 					</select>
 				</Field>
+				<Field label="1 個あたりの容量" hint="荷姿が違えば別の商品として登録する">
+					<input name="amount" type="number" inputMode="decimal" min={0.01} step="any" required defaultValue={product?.amount ?? ""} className={inputClass} placeholder="例: 1000" />
+				</Field>
 			</div>
 
 			<Field label="画像">

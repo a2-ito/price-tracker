@@ -1,0 +1,1 @@
+ALTER TABLE `products` ADD `amount` real DEFAULT 1 NOT NULL;

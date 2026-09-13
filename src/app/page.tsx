@@ -14,7 +14,7 @@ function parseCategoryId(value: string | string[] | undefined): number | undefin
 
 function ProductCard({ item }: { item: ProductListItem }) {
 	const best = item.best;
-	const perUnit = best ? unitPrice(best.price, best.amount, best.quantity, item.unit) : null;
+	const perUnit = best ? unitPrice(best.price, item.amount, best.quantity, item.unit) : null;
 
 	return (
 		<Link
@@ -44,7 +44,7 @@ function ProductCard({ item }: { item: ProductListItem }) {
 							<span className="text-base font-semibold text-zinc-900 dark:text-zinc-100">
 								{formatYen(best.price, 0)}
 								<span className="ml-0.5 text-xs font-normal text-zinc-500">
-									/ {formatAmount(best.amount, best.quantity, item.unit)}
+									/ {formatAmount(item.amount, best.quantity, item.unit)}
 								</span>
 							</span>
 						</p>

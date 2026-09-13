@@ -8,7 +8,12 @@ import * as schema from "@/db/schema";
  * テスト用に本物の D1 / R2（Miniflare 上の workerd）を立てる。
  * drizzle/ 配下のマイグレーション SQL をそのまま適用するので本番とスキーマがずれない。
  */
-export async function createTestEnv() {
+/** マイグレーションを途中まで適用した環境を作る（移行 SQL の検証用） */
+export async function createTestEnvUpTo(lastMigration: string) {
+	return createTestEnv({ upTo: lastMigration });
+}
+
+export async function createTestEnv(opts: { upTo?: string } = {}) {
 	// Miniflare 5 は wrangler 設定風の新スキーマになったため、簡潔な v4 形式から変換して渡す
 	const mf = new Miniflare(
 		convertV4MiniflareOptions({
@@ -21,7 +26,7 @@ export async function createTestEnv() {
 
 	const d1 = await mf.getD1Database("DB");
 	const bucket = await mf.getR2Bucket("IMAGES_BUCKET");
-	await applyMigrations(d1);
+	await applyMigrations(d1, opts.upTo);
 
 	const env = { DB: d1, IMAGES_BUCKET: bucket } as unknown as CloudflareEnv;
 	const db = drizzle(d1, { schema });
@@ -29,6 +34,19 @@ export async function createTestEnv() {
 	return {
 		env,
 		db,
+		d1,
+		/** 指定したマイグレーションを追加で適用する */
+		async applyMigration(prefix: string) {
+			const dir = join(process.cwd(), "drizzle");
+			const file = readdirSync(dir).find((f) => f.startsWith(prefix) && f.endsWith(".sql"));
+			if (!file) throw new Error(`マイグレーションが見つかりません: ${prefix}`);
+			const sql = readFileSync(join(dir, file), "utf8");
+			const statements = sql
+				.split("--> statement-breakpoint")
+				.map((s) => s.trim())
+				.filter((s) => s !== "");
+			for (const statement of statements) await d1.prepare(statement).run();
+		},
 		bucket,
 		dispose: () => mf.dispose(),
 		/** 全テーブルと R2 バケットを空にする（AUTOINCREMENT の連番もリセット） */
@@ -47,11 +65,16 @@ export async function createTestEnv() {
 
 export type TestEnv = Awaited<ReturnType<typeof createTestEnv>>;
 
-async function applyMigrations(d1: D1Database): Promise<void> {
+async function applyMigrations(d1: D1Database, upTo?: string): Promise<void> {
 	const dir = join(process.cwd(), "drizzle");
-	const files = readdirSync(dir)
+	let files = readdirSync(dir)
 		.filter((f) => f.endsWith(".sql"))
 		.sort();
+	if (upTo) {
+		const index = files.findIndex((f) => f.startsWith(upTo));
+		if (index < 0) throw new Error(`マイグレーションが見つかりません: ${upTo}`);
+		files = files.slice(0, index + 1);
+	}
 	for (const file of files) {
 		const sql = readFileSync(join(dir, file), "utf8");
 		const statements = sql
