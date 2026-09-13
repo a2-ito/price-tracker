@@ -50,6 +50,13 @@
       "when": 1789294143871,
       "tag": "0006_drop_record_amount",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "6",
+      "when": 1789295522951,
+      "tag": "0007_add_product_count",
+      "breakpoints": true
     }
   ]
 }

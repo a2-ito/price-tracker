@@ -3,7 +3,7 @@ import type { Db } from "./index";
 import { categories, priceRecords, products, type Category, type PriceRecord, type Product } from "./schema";
 
 /** 単価（1 unit あたり）の SQL 式。price_records のカラムを参照する */
-const unitCostExpr = sql<number>`${priceRecords.price} * 1.0 / ((SELECT p.amount FROM products p WHERE p.id = ${priceRecords.productId}) * ${priceRecords.quantity})`;
+const unitCostExpr = sql<number>`${priceRecords.price} * 1.0 / ((SELECT p.amount * p.count FROM products p WHERE p.id = ${priceRecords.productId}) * ${priceRecords.quantity})`;
 
 export type BestRecord = Pick<PriceRecord, "id" | "store" | "price" | "quantity" | "recordedAt">;
 export type ProductListItem = Product & { categoryName: string | null; best: BestRecord | null };
@@ -20,7 +20,7 @@ export async function listProducts(
 	const bestId = sql`(
 		SELECT r.id FROM price_records r
 		WHERE r.product_id = ${products.id}
-		ORDER BY r.price * 1.0 / (${products.amount} * r.quantity) ASC, r.recorded_at DESC, r.id DESC
+		ORDER BY r.price * 1.0 / (${products.amount} * ${products.count} * r.quantity) ASC, r.recorded_at DESC, r.id DESC
 		LIMIT 1
 	)`;
 

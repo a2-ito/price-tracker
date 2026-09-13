@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatAmount, formatYen, unitBase, unitBaseLabel, unitPrice } from "./price";
+import { formatAmount, formatPackage, formatYen, packageAmount, unitBase, unitBaseLabel, unitPrice } from "./price";
 
 describe("unitBase / unitBaseLabel", () => {
 	it("g と ml は 100 あたり、それ以外は 1 あたり", () => {
@@ -13,18 +13,49 @@ describe("unitBase / unitBaseLabel", () => {
 });
 
 describe("unitPrice", () => {
-	it("100g あたりの単価を計算する", () => {
-		expect(unitPrice(198, 1000, 1, "ml")).toBeCloseTo(19.8);
+	it("100ml あたりの単価を計算する", () => {
+		expect(unitPrice({ price: 198, amount: 1000, unit: "ml" })).toBeCloseTo(19.8);
 	});
-	it("まとめ売りは個数で割る", () => {
-		expect(unitPrice(548, 1000, 3, "ml")).toBeCloseTo(18.2666, 3);
+	it("まとめ買いは購入数で割る", () => {
+		expect(unitPrice({ price: 548, amount: 1000, quantity: 3, unit: "ml" })).toBeCloseTo(18.2666, 3);
+	});
+	it("入数のあるパッケージは合計容量で割る", () => {
+		// 350ml × 6 本 = 2,100ml を 833 円
+		expect(unitPrice({ price: 833, amount: 350, count: 6, unit: "ml" })).toBeCloseTo(39.667, 2);
+	});
+	it("入数とまとめ買いの両方を掛ける", () => {
+		// 350ml × 6 本を 2 パッケージ = 4,200ml
+		expect(unitPrice({ price: 1666, amount: 350, count: 6, quantity: 2, unit: "ml" })).toBeCloseTo(39.667, 2);
 	});
 	it("個数単位は 1 個あたり", () => {
-		expect(unitPrice(258, 10, 1, "個")).toBeCloseTo(25.8);
+		expect(unitPrice({ price: 258, amount: 10, unit: "個" })).toBeCloseTo(25.8);
 	});
-	it("容量が 0 以下なら NaN", () => {
-		expect(unitPrice(100, 0, 1, "g")).toBeNaN();
-		expect(unitPrice(100, 100, 0, "g")).toBeNaN();
+	it("容量や個数が 0 以下なら NaN", () => {
+		expect(unitPrice({ price: 100, amount: 0, unit: "g" })).toBeNaN();
+		expect(unitPrice({ price: 100, amount: 100, quantity: 0, unit: "g" })).toBeNaN();
+		expect(unitPrice({ price: 100, amount: 100, count: 0, unit: "g" })).toBeNaN();
+	});
+});
+
+describe("formatPackage", () => {
+	it("入数が 1 なら容量だけ", () => {
+		expect(formatPackage(1000, 1, "ml")).toBe("1,000ml");
+	});
+	it("入数が 2 以上なら内訳と合計を出す", () => {
+		expect(formatPackage(350, 6, "ml")).toBe("350ml × 6 = 2,100ml");
+	});
+	it("小数の容量も扱える", () => {
+		expect(formatPackage(7.5, 4, "g")).toBe("7.5g × 4 = 30g");
+	});
+	it("入数が 0 以下でも容量だけ返す", () => {
+		expect(formatPackage(100, 0, "g")).toBe("100g");
+	});
+});
+
+describe("packageAmount", () => {
+	it("1 個あたりの容量に入数を掛ける", () => {
+		expect(packageAmount(350, 6)).toBe(2100);
+		expect(packageAmount(1000, 1)).toBe(1000);
 	});
 });
 

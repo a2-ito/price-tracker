@@ -4,6 +4,7 @@ import { RecordForm } from "@/components/record-form";
 import { getDb } from "@/db";
 import { getProduct, getRecord, listStores } from "@/db/queries";
 import { requireUser } from "@/lib/auth";
+import { packageAmount } from "@/lib/price";
 
 function parseId(raw: string): number | null {
 	const n = Number(raw);
@@ -29,7 +30,7 @@ export default async function EditRecordPage({ params }: PageProps<"/products/[i
 				<p className="text-sm text-zinc-500">{product.name}</p>
 				<h1 className="text-xl font-bold">価格記録を編集</h1>
 			</div>
-			<RecordForm action={updateRecord} productId={productId} unit={product.unit} amount={product.amount} stores={stores} record={record} />
+			<RecordForm action={updateRecord} productId={productId} unit={product.unit} amount={packageAmount(product.amount, product.count)} stores={stores} record={record} />
 		</div>
 	);
 }

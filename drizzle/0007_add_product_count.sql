@@ -1,0 +1,1 @@
+ALTER TABLE `products` ADD `count` integer DEFAULT 1 NOT NULL;
