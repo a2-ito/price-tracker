@@ -80,6 +80,38 @@ describe("listProducts", () => {
 		expect((await listProducts(t.db, { categoryId: 1, query: "豆" })).length).toBe(1);
 	});
 
+	it("入数のある商品は合計容量で単価を判定する", async () => {
+		// 350ml × 6 本 = 2,100ml のパッケージと、2,000ml の単品を比べる
+		await t.db.insert(products).values([
+			{ name: "6缶パック", unit: "ml", amount: 350, count: 6 },
+			{ name: "大瓶", unit: "ml", amount: 2000, count: 1 },
+		]);
+		await t.db.insert(priceRecords).values([
+			{ productId: 1, store: "A", price: 840, quantity: 1, recordedAt: "2026-09-12" },
+			{ productId: 2, store: "B", price: 840, quantity: 1, recordedAt: "2026-09-12" },
+		]);
+
+		const items = await listProducts(t.db);
+		const pack = items.find((i) => i.name === "6缶パック")!;
+		const bottle = items.find((i) => i.name === "大瓶")!;
+		expect(pack.count).toBe(6);
+		expect(pack.amount).toBe(350);
+		expect(bottle.count).toBe(1);
+		// 同じ価格なら、合計容量の多い大瓶のほうが単価は安い
+		expect(pack.best?.price).toBe(840);
+		expect(bottle.best?.price).toBe(840);
+	});
+
+	it("入数を掛けた合計容量で最安値が決まる", async () => {
+		await t.db.insert(products).values({ name: "缶", unit: "ml", amount: 350, count: 6 });
+		await t.db.insert(priceRecords).values([
+			{ productId: 1, store: "高い店", price: 900, quantity: 1, recordedAt: "2026-09-10" },
+			{ productId: 1, store: "安い店", price: 833, quantity: 1, recordedAt: "2026-09-11" },
+		]);
+		const [item] = await listProducts(t.db);
+		expect(item.best?.store).toBe("安い店");
+	});
+
 	it("空の DB では空配列", async () => {
 		expect(await listProducts(t.db)).toEqual([]);
 	});

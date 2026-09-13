@@ -12,7 +12,7 @@ type Props = {
 	action: (prev: ActionState, formData: FormData) => Promise<ActionState>;
 	productId: number;
 	unit: Unit;
-	/** 商品 1 個あたりの容量。表示にのみ使う */
+	/** 商品 1 パッケージの合計容量。表示にのみ使う */
 	amount: number;
 	stores: string[];
 	/** 渡すと編集フォームになる */

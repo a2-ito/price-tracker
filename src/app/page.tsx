@@ -3,7 +3,7 @@ import { getDb } from "@/db";
 import { listCategories, listProducts, type ProductListItem } from "@/db/queries";
 import { requireUser } from "@/lib/auth";
 import { imageUrl } from "@/lib/images";
-import { formatAmount, formatYen, unitBaseLabel, unitPrice } from "@/lib/price";
+import { formatAmount, formatPackage, formatYen, packageAmount, unitBaseLabel, unitPrice } from "@/lib/price";
 import { inputClass } from "@/components/ui";
 
 function parseCategoryId(value: string | string[] | undefined): number | undefined {
@@ -14,7 +14,9 @@ function parseCategoryId(value: string | string[] | undefined): number | undefin
 
 function ProductCard({ item }: { item: ProductListItem }) {
 	const best = item.best;
-	const perUnit = best ? unitPrice(best.price, item.amount, best.quantity, item.unit) : null;
+	const perUnit = best
+		? unitPrice({ price: best.price, amount: item.amount, count: item.count, quantity: best.quantity, unit: item.unit })
+		: null;
 
 	return (
 		<Link
@@ -34,6 +36,7 @@ function ProductCard({ item }: { item: ProductListItem }) {
 					{item.maker && <span className="ml-1 text-zinc-400">・{item.maker}</span>}
 				</p>
 				<h2 className="truncate font-semibold">{item.name}</h2>
+				<p className="truncate text-xs text-zinc-500">{formatPackage(item.amount, item.count, item.unit)}</p>
 				{best && perUnit !== null ? (
 					<div className="mt-1">
 						<p className="flex flex-wrap items-baseline gap-x-2">
@@ -44,7 +47,7 @@ function ProductCard({ item }: { item: ProductListItem }) {
 							<span className="text-base font-semibold text-zinc-900 dark:text-zinc-100">
 								{formatYen(best.price, 0)}
 								<span className="ml-0.5 text-xs font-normal text-zinc-500">
-									/ {formatAmount(item.amount, best.quantity, item.unit)}
+									/ {formatAmount(packageAmount(item.amount, item.count), best.quantity, item.unit)}
 								</span>
 							</span>
 						</p>

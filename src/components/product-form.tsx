@@ -57,7 +57,10 @@ export function ProductForm({ action, categories, makers, product }: Props) {
 					</select>
 				</Field>
 				<Field label="1 個あたりの容量" hint="荷姿が違えば別の商品として登録する">
-					<input name="amount" type="number" inputMode="decimal" min={0.01} step="any" required defaultValue={product?.amount ?? ""} className={inputClass} placeholder="例: 1000" />
+					<input name="amount" type="number" inputMode="decimal" min={0.01} step="any" required defaultValue={product?.amount ?? ""} className={inputClass} placeholder="例: 350" />
+				</Field>
+				<Field label="入数" hint="6 缶パックなら 6。単品なら 1">
+					<input name="count" type="number" inputMode="numeric" min={1} step={1} defaultValue={product?.count ?? 1} className={inputClass} />
 				</Field>
 			</div>
 

@@ -27,6 +27,8 @@ export const products = sqliteTable(
 		unit: text("unit", { enum: UNITS }).notNull().default("g"),
 		/** 1 個あたりの容量。荷姿が違えば別の商品として扱う */
 		amount: real("amount").notNull().default(1),
+		/** 1 パッケージに入っている個数。350ml × 6 本なら 6 */
+		count: integer("count").notNull().default(1),
 		imageKey: text("image_key"),
 		memo: text("memo"),
 		createdAt: timestamp("created_at"),
