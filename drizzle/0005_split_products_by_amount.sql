@@ -49,14 +49,21 @@ SET product_id = (
 WHERE amount <> (SELECT amount FROM products WHERE id = price_records.product_id);
 --> statement-breakpoint
 
--- 4. 分割元にも容量を付記して、荷姿違いが並んだときに見分けられるようにする
+-- 4. 分割元にも容量を付記して、荷姿違いが並んだときに見分けられるようにする。
+--    LIKE は D1 でパターンが複雑すぎると弾かれるため、名前を組み立てて等値で判定する
 UPDATE products
 SET name = name || ' ' ||
   CASE WHEN amount = CAST(amount AS INTEGER)
     THEN CAST(CAST(amount AS INTEGER) AS TEXT)
     ELSE CAST(amount AS TEXT) END
   || unit
-WHERE id IN (
-  SELECT op.id FROM products op
-  JOIN products np ON np.name LIKE op.name || ' %' AND np.unit = op.unit AND np.id <> op.id
+WHERE EXISTS (
+  SELECT 1 FROM products np
+  WHERE np.id <> products.id
+    AND np.unit = products.unit
+    AND np.name = products.name || ' ' ||
+        CASE WHEN np.amount = CAST(np.amount AS INTEGER)
+          THEN CAST(CAST(np.amount AS INTEGER) AS TEXT)
+          ELSE CAST(np.amount AS TEXT) END
+        || products.unit
 );
