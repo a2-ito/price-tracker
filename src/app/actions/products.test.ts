@@ -114,6 +114,29 @@ describe("updateProduct", () => {
 		expect(await r2Keys()).toEqual([]);
 	});
 
+	it("別の商品が同じ画像を使っていれば R2 から消さない", async () => {
+		// 荷姿ごとの分割（マイグレーション 0005）で image_key が複製されるため
+		await t.bucket.put("products/shared.jpg", new Uint8Array(3));
+		await t.db.insert(products).values([
+			{ name: "p1", unit: "g", amount: 100, imageKey: "products/shared.jpg" },
+			{ name: "p2", unit: "g", amount: 200, imageKey: "products/shared.jpg" },
+		]);
+		await expectRedirect(() => updateProduct({}, formData({ id: 1, name: "p1", unit: "g", amount: 100, image: fakeImage() })));
+		const p1 = await getProduct(t.db, 1);
+		expect(p1?.imageKey).not.toBe("products/shared.jpg");
+		expect((await getProduct(t.db, 2))?.imageKey).toBe("products/shared.jpg");
+		expect((await r2Keys()).sort()).toEqual(["products/shared.jpg", p1!.imageKey].sort());
+	});
+
+	it("価格記録が同じ画像を使っていれば R2 から消さない", async () => {
+		await t.bucket.put("products/shared.jpg", new Uint8Array(3));
+		await t.db.insert(products).values({ name: "p", unit: "g", amount: 100, imageKey: "products/shared.jpg" });
+		await t.db.insert(priceRecords).values({ productId: 1, store: "s", price: 100, quantity: 1, recordedAt: "2026-09-12", imageKey: "products/shared.jpg" });
+		await expectRedirect(() => updateProduct({}, formData({ id: 1, name: "p", unit: "g", amount: 100, removeImage: "on" })));
+		expect((await getProduct(t.db, 1))?.imageKey).toBeNull();
+		expect(await r2Keys()).toEqual(["products/shared.jpg"]);
+	});
+
 	it("画像を変更しなければ既存キーを保持する", async () => {
 		await t.db.insert(products).values({ name: "p", unit: "g", amount: 100, imageKey: "products/keep.jpg" });
 		await expectRedirect(() => updateProduct({}, formData({ id: 1, name: "p2", unit: "g", amount: 100 })));
@@ -149,6 +172,17 @@ describe("deleteProduct", () => {
 		expect(await getProduct(t.db, 1)).toBeNull();
 		expect(await listRecords(t.db, 1)).toEqual([]);
 		expect(await r2Keys()).toEqual([]);
+	});
+
+	it("画像を共有する商品が残っていれば R2 から消さない", async () => {
+		await t.bucket.put("products/shared.jpg", new Uint8Array(3));
+		await t.db.insert(products).values([
+			{ name: "p1", unit: "g", amount: 100, imageKey: "products/shared.jpg" },
+			{ name: "p2", unit: "g", amount: 200, imageKey: "products/shared.jpg" },
+		]);
+		await expectRedirect(() => deleteProduct(formData({ id: 1 })));
+		expect(await getProduct(t.db, 1)).toBeNull();
+		expect(await r2Keys()).toEqual(["products/shared.jpg"]);
 	});
 
 	it("紐づく価格記録の写真も R2 から消える", async () => {

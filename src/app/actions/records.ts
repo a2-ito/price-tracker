@@ -8,7 +8,8 @@ import { getDb } from "@/db";
 import { priceRecords } from "@/db/schema";
 import { requireUser } from "@/lib/auth";
 import { idFromForm, optionalText, optionalUrl, parseForm, type ActionState } from "@/lib/form";
-import { deleteImage, storeImage } from "@/lib/images";
+import { releaseImage } from "@/lib/image-cleanup";
+import { storeImage } from "@/lib/images";
 
 const recordSchema = z.object({
 	productId: idFromForm,
@@ -66,13 +67,8 @@ export async function updateRecord(_prev: ActionState, formData: FormData): Prom
 	let imageKey = current.imageKey;
 	try {
 		const newKey = await storeImage(imageFile(formData));
-		if (newKey) {
-			await deleteImage(current.imageKey);
-			imageKey = newKey;
-		} else if (parsed.data.removeImage === "on") {
-			await deleteImage(current.imageKey);
-			imageKey = null;
-		}
+		if (newKey) imageKey = newKey;
+		else if (parsed.data.removeImage === "on") imageKey = null;
 	} catch (e) {
 		return { error: e instanceof Error ? e.message : "画像の保存に失敗しました" };
 	}
@@ -90,6 +86,9 @@ export async function updateRecord(_prev: ActionState, formData: FormData): Prom
 		})
 		.where(eq(priceRecords.id, parsed.data.id));
 
+	// 参照が切れたことを確かめてから消すため、DB を更新したあとに片付ける
+	if (imageKey !== current.imageKey) await releaseImage(db, current.imageKey);
+
 	revalidatePath("/");
 	revalidatePath(`/products/${parsed.data.productId}`);
 	redirect(`/products/${parsed.data.productId}`);
@@ -101,10 +100,10 @@ export async function deleteRecord(formData: FormData): Promise<void> {
 	if (!parsed.ok) throw new Error(parsed.error);
 
 	const db = await getDb();
-	// 行を消す前に R2 の画像も片付ける
 	const current = (await db.select().from(priceRecords).where(eq(priceRecords.id, parsed.data.id)).limit(1))[0];
-	if (current) await deleteImage(current.imageKey);
+	// 画像を共有している行を巻き添えにしないよう、行を消したあとに R2 を片付ける
 	await db.delete(priceRecords).where(eq(priceRecords.id, parsed.data.id));
+	if (current) await releaseImage(db, current.imageKey);
 	revalidatePath("/");
 	revalidatePath(`/products/${parsed.data.productId}`);
 }

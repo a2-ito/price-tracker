@@ -1,3 +1,4 @@
+import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { expectRedirect, revalidated } from "@/test/action-mocks";
 import { createTestEnv, fakeImage, formData, type TestEnv } from "@/test/d1";
@@ -145,6 +146,15 @@ describe("updateRecord", () => {
 		await expectRedirect(() => updateRecord({}, formData({ ...valid, id: record.id, removeImage: "on" })));
 		expect((await listRecords(t.db, 1))[0].imageKey).toBeNull();
 		expect(await r2Keys()).toEqual([]);
+	});
+
+	it("商品が同じ写真を使っていれば R2 から消さない", async () => {
+		await t.bucket.put("products/shared.jpg", new Uint8Array(3));
+		await t.db.update(products).set({ imageKey: "products/shared.jpg" }).where(eq(products.id, 1));
+		const record = await seedRecord({ imageKey: "products/shared.jpg" });
+		await expectRedirect(() => updateRecord({}, formData({ ...valid, id: record.id, removeImage: "on" })));
+		expect((await listRecords(t.db, 1))[0].imageKey).toBeNull();
+		expect(await r2Keys()).toEqual(["products/shared.jpg"]);
 	});
 
 	it("写真を触らなければそのまま残る", async () => {

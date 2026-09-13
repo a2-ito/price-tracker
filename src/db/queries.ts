@@ -78,6 +78,14 @@ export async function getRecord(db: Db, id: number): Promise<PriceRecord | null>
 	return rows[0] ?? null;
 }
 
+/** 画像キーが商品・価格記録のいずれかから参照されているか */
+export async function isImageKeyReferenced(db: Db, key: string): Promise<boolean> {
+	const product = await db.select({ id: products.id }).from(products).where(eq(products.imageKey, key)).limit(1);
+	if (product.length > 0) return true;
+	const record = await db.select({ id: priceRecords.id }).from(priceRecords).where(eq(priceRecords.imageKey, key)).limit(1);
+	return record.length > 0;
+}
+
 /** メーカー名のサジェスト用に既存の値を重複なしで返す */
 export async function listMakers(db: Db): Promise<string[]> {
 	const rows = await db
