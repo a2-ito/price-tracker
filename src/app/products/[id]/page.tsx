@@ -64,13 +64,20 @@ export default async function ProductPage({ params }: PageProps<"/products/[id]"
 					{best ? (
 						<div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3 dark:border-emerald-900 dark:bg-emerald-950">
 							<p className="text-xs font-medium text-emerald-700 dark:text-emerald-300">最安値</p>
-							<p className="text-2xl font-bold text-emerald-700 dark:text-emerald-300">
-								{formatYen(unitPrice(best.price, best.amount, best.quantity, product.unit))}
-								<span className="ml-1 text-sm font-normal">/ {unitBaseLabel(product.unit)}</span>
+							<p className="flex flex-wrap items-baseline gap-x-3">
+								<span className="text-2xl font-bold text-emerald-700 dark:text-emerald-300">
+									{formatYen(unitPrice(best.price, best.amount, best.quantity, product.unit))}
+									<span className="ml-1 text-sm font-normal">/ {unitBaseLabel(product.unit)}</span>
+								</span>
+								<span className="text-xl font-semibold text-emerald-800 dark:text-emerald-200">
+									{formatYen(best.price, 0)}
+									<span className="ml-1 text-sm font-normal">
+										/ {formatAmount(best.amount, best.quantity, product.unit)}
+									</span>
+								</span>
 							</p>
 							<p className="text-sm text-emerald-800 dark:text-emerald-200">
-								<StoreLabel store={best.store} url={best.url} /> ・ {formatYen(best.price, 0)}（
-								{formatAmount(best.amount, best.quantity, product.unit)}）・ {best.recordedAt}
+								<StoreLabel store={best.store} url={best.url} /> ・ {best.recordedAt}
 							</p>
 						</div>
 					) : (
