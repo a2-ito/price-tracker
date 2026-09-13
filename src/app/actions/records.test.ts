@@ -24,17 +24,17 @@ beforeAll(async () => {
 afterAll(() => t.dispose());
 beforeEach(async () => {
 	await t.truncate();
-	await t.db.insert(products).values({ name: "豆乳", unit: "ml" });
+	await t.db.insert(products).values({ name: "豆乳", unit: "ml", amount: 1000 });
 	revalidated.length = 0;
 });
 
-const valid = { productId: 1, store: "OKストア", price: 198, amount: 1000, quantity: 1, recordedAt: "2026-09-12" };
+const valid = { productId: 1, store: "OKストア", price: 198, quantity: 1, recordedAt: "2026-09-12" };
 
 describe("createRecord", () => {
 	it("記録して成功メッセージを返す", async () => {
 		const state = await createRecord({}, formData({ ...valid, memo: "セール" }));
 		expect(state).toEqual({ success: "価格を記録しました" });
-		expect(await listRecords(t.db, 1)).toMatchObject([{ store: "OKストア", price: 198, amount: 1000, quantity: 1, memo: "セール" }]);
+		expect(await listRecords(t.db, 1)).toMatchObject([{ store: "OKストア", price: 198, quantity: 1, memo: "セール" }]);
 		expect(revalidated).toEqual(expect.arrayContaining(["/", "/products/1"]));
 	});
 
@@ -43,16 +43,10 @@ describe("createRecord", () => {
 		expect((await listRecords(t.db, 1))[0].quantity).toBe(1);
 	});
 
-	it("小数の容量を受け付ける", async () => {
-		await createRecord({}, formData({ ...valid, amount: "1.5" }));
-		expect((await listRecords(t.db, 1))[0].amount).toBe(1.5);
-	});
-
 	it.each([
 		["店舗が空", { store: "" }, /店舗名を入力/],
 		["価格が 0", { price: 0 }, /1 円以上/],
 		["価格が小数", { price: "19.8" }, /整数/],
-		["容量が 0", { amount: 0 }, /0 より大きい/],
 		["日付形式が不正", { recordedAt: "2026/09/12" }, /日付の形式/],
 		["個数が 0", { quantity: 0 }, /^quantity:/],
 	])("%s なら検証エラー", async (_label, patch, pattern) => {
@@ -107,7 +101,6 @@ describe("updateRecord", () => {
 			productId: 1,
 			store: "旧店",
 			price: 300,
-			amount: 500,
 			quantity: 1,
 			recordedAt: "2026-09-01",
 			...extra,
@@ -122,10 +115,10 @@ describe("updateRecord", () => {
 	it("内容を更新して詳細へ戻る", async () => {
 		const record = await seedRecord();
 		const to = await expectRedirect(() =>
-			updateRecord({}, formData({ ...valid, id: record.id, store: "新店", price: 199, amount: 1200, quantity: 2, memo: "改" })),
+			updateRecord({}, formData({ ...valid, id: record.id, store: "新店", price: 199, quantity: 2, memo: "改" })),
 		);
 		expect(to).toBe("/products/1");
-		expect((await listRecords(t.db, 1))[0]).toMatchObject({ store: "新店", price: 199, amount: 1200, quantity: 2, memo: "改" });
+		expect((await listRecords(t.db, 1))[0]).toMatchObject({ store: "新店", price: 199, quantity: 2, memo: "改" });
 		expect(revalidated).toEqual(expect.arrayContaining(["/", "/products/1"]));
 	});
 
@@ -176,8 +169,8 @@ describe("updateRecord", () => {
 describe("deleteRecord", () => {
 	it("指定の記録だけ削除する", async () => {
 		await t.db.insert(priceRecords).values([
-			{ productId: 1, store: "A", price: 100, amount: 100, quantity: 1, recordedAt: "2026-09-01" },
-			{ productId: 1, store: "B", price: 200, amount: 100, quantity: 1, recordedAt: "2026-09-02" },
+			{ productId: 1, store: "A", price: 100, quantity: 1, recordedAt: "2026-09-01" },
+			{ productId: 1, store: "B", price: 200, quantity: 1, recordedAt: "2026-09-02" },
 		]);
 		await deleteRecord(formData({ id: 1, productId: 1 }));
 		expect((await listRecords(t.db, 1)).map((r) => r.store)).toEqual(["B"]);

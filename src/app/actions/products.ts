@@ -15,6 +15,7 @@ const productSchema = z.object({
 	maker: optionalText,
 	categoryId: optionalIdFromForm,
 	unit: z.enum(UNITS),
+	amount: z.coerce.number().positive("容量は 0 より大きい値で入力してください"),
 	memo: optionalText,
 });
 
@@ -43,6 +44,7 @@ export async function createProduct(_prev: ActionState, formData: FormData): Pro
 			maker: parsed.data.maker ?? null,
 			categoryId: parsed.data.categoryId ?? null,
 			unit: parsed.data.unit,
+			amount: parsed.data.amount,
 			memo: parsed.data.memo ?? null,
 			imageKey,
 		})
@@ -85,6 +87,7 @@ export async function updateProduct(_prev: ActionState, formData: FormData): Pro
 			maker: parsed.data.maker ?? null,
 			categoryId: parsed.data.categoryId ?? null,
 			unit: parsed.data.unit,
+			amount: parsed.data.amount,
 			memo: parsed.data.memo ?? null,
 			imageKey,
 			updatedAt: new Date().toISOString().replace("T", " ").slice(0, 19),

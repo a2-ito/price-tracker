@@ -9,7 +9,10 @@ export function unitBaseLabel(unit: Unit): string {
 	return `${unitBase(unit)}${unit}`;
 }
 
-/** 基準量あたりの単価（円） */
+/**
+ * 基準量あたりの単価（円）。
+ * amount は商品 1 個あたりの容量、quantity は購入個数。
+ */
 export function unitPrice(price: number, amount: number, quantity: number, unit: Unit): number {
 	const total = amount * quantity;
 	if (total <= 0) return Number.NaN;

@@ -60,19 +60,22 @@ export default async function ProductPage({ params }: PageProps<"/products/[id]"
 				<div className="flex-1 space-y-2">
 					<p className="text-sm text-zinc-500">{product.categoryName ?? "未分類"}</p>
 					<h1 className="text-2xl font-bold">{product.name}</h1>
-					{product.maker && <p className="text-sm text-zinc-600 dark:text-zinc-400">{product.maker}</p>}
+					<p className="text-sm text-zinc-600 dark:text-zinc-400">
+						{formatAmount(product.amount, 1, product.unit)}
+						{product.maker && <span className="ml-2">{product.maker}</span>}
+					</p>
 					{best ? (
 						<div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3 dark:border-emerald-900 dark:bg-emerald-950">
 							<p className="text-xs font-medium text-emerald-700 dark:text-emerald-300">最安値</p>
 							<p className="flex flex-wrap items-baseline gap-x-3">
 								<span className="text-2xl font-bold text-emerald-700 dark:text-emerald-300">
-									{formatYen(unitPrice(best.price, best.amount, best.quantity, product.unit))}
+									{formatYen(unitPrice(best.price, product.amount, best.quantity, product.unit))}
 									<span className="ml-1 text-sm font-normal">/ {unitBaseLabel(product.unit)}</span>
 								</span>
 								<span className="text-xl font-semibold text-emerald-800 dark:text-emerald-200">
 									{formatYen(best.price, 0)}
 									<span className="ml-1 text-sm font-normal">
-										/ {formatAmount(best.amount, best.quantity, product.unit)}
+										/ {formatAmount(product.amount, best.quantity, product.unit)}
 									</span>
 								</span>
 							</p>
@@ -96,7 +99,7 @@ export default async function ProductPage({ params }: PageProps<"/products/[id]"
 
 			<section className="space-y-3 rounded-lg border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-950">
 				<h2 className="font-semibold">価格を記録</h2>
-				<RecordForm action={createRecord} productId={product.id} unit={product.unit} stores={stores} />
+				<RecordForm action={createRecord} productId={product.id} unit={product.unit} amount={product.amount} stores={stores} />
 			</section>
 
 			<section className="space-y-3">
@@ -121,12 +124,12 @@ export default async function ProductPage({ params }: PageProps<"/products/[id]"
 							<tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
 								{records.map((r, i) => (
 									<tr key={r.id} className={i === 0 ? "bg-emerald-50/60 dark:bg-emerald-950/40" : undefined}>
-										<td className="px-3 py-2 font-semibold">{formatYen(unitPrice(r.price, r.amount, r.quantity, product.unit))}</td>
+										<td className="px-3 py-2 font-semibold">{formatYen(unitPrice(r.price, product.amount, r.quantity, product.unit))}</td>
 										<td className="px-3 py-2">
 											<StoreLabel store={r.store} url={r.url} />
 										</td>
 										<td className="px-3 py-2">{formatYen(r.price, 0)}</td>
-										<td className="px-3 py-2">{formatAmount(r.amount, r.quantity, product.unit)}</td>
+										<td className="px-3 py-2">{formatAmount(product.amount, r.quantity, product.unit)}</td>
 										<td className="px-3 py-2 whitespace-nowrap">{r.recordedAt}</td>
 										<td className="px-3 py-2">
 											{r.imageKey && (

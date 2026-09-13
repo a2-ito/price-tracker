@@ -1,0 +1,1 @@
+ALTER TABLE `price_records` DROP COLUMN `amount`;

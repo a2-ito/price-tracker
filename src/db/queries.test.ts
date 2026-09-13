@@ -15,15 +15,15 @@ beforeEach(() => t.truncate());
 async function seed() {
 	await t.db.insert(categories).values([{ name: "飲料" }, { name: "乳製品" }]);
 	await t.db.insert(products).values([
-		{ name: "無調整豆乳", categoryId: 1, unit: "ml" },
-		{ name: "卵", categoryId: 2, unit: "個" },
-		{ name: "未分類の何か", unit: "g" },
+		{ name: "無調整豆乳", categoryId: 1, unit: "ml", amount: 1000 },
+		{ name: "卵", categoryId: 2, unit: "個", amount: 10 },
+		{ name: "未分類の何か", unit: "g", amount: 100 },
 	]);
 	await t.db.insert(priceRecords).values([
-		{ productId: 1, store: "OKストア", price: 198, amount: 1000, quantity: 1, recordedAt: "2026-09-10" },
-		{ productId: 1, store: "業務スーパー", price: 548, amount: 1000, quantity: 3, recordedAt: "2026-09-11" },
-		{ productId: 1, store: "コンビニ", price: 248, amount: 1000, quantity: 1, recordedAt: "2026-09-12" },
-		{ productId: 2, store: "ライフ", price: 258, amount: 10, quantity: 1, recordedAt: "2026-09-12" },
+		{ productId: 1, store: "OKストア", price: 198, quantity: 1, recordedAt: "2026-09-10" },
+		{ productId: 1, store: "業務スーパー", price: 548, quantity: 3, recordedAt: "2026-09-11" },
+		{ productId: 1, store: "コンビニ", price: 248, quantity: 1, recordedAt: "2026-09-12" },
+		{ productId: 2, store: "ライフ", price: 258, quantity: 1, recordedAt: "2026-09-12" },
 	]);
 }
 
@@ -41,7 +41,7 @@ describe("listProducts", () => {
 		const soy = items.find((i) => i.name === "無調整豆乳")!;
 		expect(soy.categoryName).toBe("飲料");
 		// 548 / 3000 = 0.1827 < 198 / 1000 = 0.198
-		expect(soy.best).toMatchObject({ store: "業務スーパー", price: 548, amount: 1000, quantity: 3 });
+		expect(soy.best).toMatchObject({ store: "業務スーパー", price: 548, quantity: 3 });
 	});
 
 	it("記録の無い商品は best が null", async () => {
@@ -53,10 +53,10 @@ describe("listProducts", () => {
 	});
 
 	it("単価が同率なら新しい記録を優先する", async () => {
-		await t.db.insert(products).values({ name: "同率", unit: "g" });
+		await t.db.insert(products).values({ name: "同率", unit: "g", amount: 100 });
 		await t.db.insert(priceRecords).values([
-			{ productId: 1, store: "古い店", price: 100, amount: 100, quantity: 1, recordedAt: "2026-01-01" },
-			{ productId: 1, store: "新しい店", price: 200, amount: 200, quantity: 1, recordedAt: "2026-06-01" },
+			{ productId: 1, store: "古い店", price: 100, quantity: 1, recordedAt: "2026-01-01" },
+			{ productId: 1, store: "新しい店", price: 200, quantity: 2, recordedAt: "2026-06-01" },
 		]);
 		const [item] = await listProducts(t.db);
 		expect(item.best?.store).toBe("新しい店");
@@ -117,7 +117,7 @@ describe("getRecord", () => {
 describe("listStores", () => {
 	it("重複なし・名前順", async () => {
 		await seed();
-		await t.db.insert(priceRecords).values({ productId: 2, store: "OKストア", price: 300, amount: 10, quantity: 1, recordedAt: "2026-09-12" });
+		await t.db.insert(priceRecords).values({ productId: 2, store: "OKストア", price: 300, quantity: 1, recordedAt: "2026-09-12" });
 		// SQLite の既定照合は UTF-8 のバイト順（ASCII → カタカナ → 漢字）
 		expect(await listStores(t.db)).toEqual(["OKストア", "コンビニ", "ライフ", "業務スーパー"]);
 		expect(new Set(await listStores(t.db)).size).toBe(4);
@@ -127,10 +127,10 @@ describe("listStores", () => {
 describe("listMakers", () => {
 	it("重複なしで返し、未設定は含めない", async () => {
 		await t.db.insert(products).values([
-			{ name: "a", unit: "g", maker: "Kikkoman" },
-			{ name: "b", unit: "g", maker: "Kikkoman" },
-			{ name: "c", unit: "g", maker: "Ajinomoto" },
-			{ name: "d", unit: "g" },
+			{ name: "a", unit: "g", amount: 100, maker: "Kikkoman" },
+			{ name: "b", unit: "g", amount: 100, maker: "Kikkoman" },
+			{ name: "c", unit: "g", amount: 100, maker: "Ajinomoto" },
+			{ name: "d", unit: "g", amount: 100 },
 		]);
 		expect(await listMakers(t.db)).toEqual(["Ajinomoto", "Kikkoman"]);
 	});

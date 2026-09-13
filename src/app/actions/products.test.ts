@@ -34,7 +34,7 @@ describe("createProduct", () => {
 	it("登録して詳細ページへリダイレクトする", async () => {
 		await t.db.insert(categories).values({ name: "飲料" });
 		const to = await expectRedirect(() =>
-			createProduct({}, formData({ name: "無調整豆乳", categoryId: 1, unit: "ml", memo: "  成分無調整  " })),
+			createProduct({}, formData({ name: "無調整豆乳", categoryId: 1, unit: "ml", amount: 1000, memo: "  成分無調整  " })),
 		);
 		expect(to).toBe("/products/1");
 		expect(await getProduct(t.db, 1)).toMatchObject({ name: "無調整豆乳", categoryId: 1, unit: "ml", memo: "成分無調整", imageKey: null });
@@ -42,34 +42,34 @@ describe("createProduct", () => {
 	});
 
 	it("メーカー名を保存する", async () => {
-		await expectRedirect(() => createProduct({}, formData({ name: "豆乳", unit: "ml", maker: "  マルサン  " })));
+		await expectRedirect(() => createProduct({}, formData({ name: "豆乳", unit: "ml", amount: 100, maker: "  マルサン  " })));
 		expect(await getProduct(t.db, 1)).toMatchObject({ maker: "マルサン" });
 	});
 
 	it("メーカー名が空なら null", async () => {
-		await expectRedirect(() => createProduct({}, formData({ name: "豆乳", unit: "ml", maker: "" })));
+		await expectRedirect(() => createProduct({}, formData({ name: "豆乳", unit: "ml", amount: 100, maker: "" })));
 		expect((await getProduct(t.db, 1))?.maker).toBeNull();
 	});
 
 	it("カテゴリ未選択・メモ空は null で保存", async () => {
-		await expectRedirect(() => createProduct({}, formData({ name: "卵", categoryId: "", unit: "個", memo: "" })));
+		await expectRedirect(() => createProduct({}, formData({ name: "卵", categoryId: "", unit: "個", amount: 100, memo: "" })));
 		expect(await getProduct(t.db, 1)).toMatchObject({ categoryId: null, memo: null });
 	});
 
 	it("画像があれば R2 に保存してキーを持つ", async () => {
-		await expectRedirect(() => createProduct({}, formData({ name: "卵", unit: "個", image: fakeImage("image/webp", 50, "a.webp") })));
+		await expectRedirect(() => createProduct({}, formData({ name: "卵", unit: "個", amount: 100, image: fakeImage("image/webp", 50, "a.webp") })));
 		const p = await getProduct(t.db, 1);
 		expect(p?.imageKey).toMatch(/^products\/.+\.webp$/);
 		expect(await r2Keys()).toEqual([p!.imageKey]);
 	});
 
 	it("空のファイル入力（未選択）は画像なし扱い", async () => {
-		await expectRedirect(() => createProduct({}, formData({ name: "卵", unit: "個", image: new File([], "", { type: "application/octet-stream" }) })));
+		await expectRedirect(() => createProduct({}, formData({ name: "卵", unit: "個", amount: 100, image: new File([], "", { type: "application/octet-stream" }) })));
 		expect((await getProduct(t.db, 1))?.imageKey).toBeNull();
 	});
 
 	it("不正な単位は検証エラーで DB に触らない", async () => {
-		const state = await createProduct({}, formData({ name: "卵", unit: "kg" }));
+		const state = await createProduct({}, formData({ name: "卵", unit: "kg", amount: 100 }));
 		expect(state.error).toMatch(/^unit:/);
 		expect(await t.db.select().from(products)).toEqual([]);
 	});
@@ -80,7 +80,7 @@ describe("createProduct", () => {
 	});
 
 	it("画像形式が不正ならエラーを返し、商品は作らない", async () => {
-		const state = await createProduct({}, formData({ name: "卵", unit: "個", image: fakeImage("text/plain", 10, "x.txt") }));
+		const state = await createProduct({}, formData({ name: "卵", unit: "個", amount: 100, image: fakeImage("text/plain", 10, "x.txt") }));
 		expect(state.error).toMatch(/対応していない画像形式/);
 		expect(await t.db.select().from(products)).toEqual([]);
 		expect(await r2Keys()).toEqual([]);
@@ -90,8 +90,8 @@ describe("createProduct", () => {
 describe("updateProduct", () => {
 	it("項目を更新して詳細へ戻る", async () => {
 		await t.db.insert(categories).values([{ name: "A" }, { name: "B" }]);
-		await t.db.insert(products).values({ name: "旧", categoryId: 1, unit: "g" });
-		const to = await expectRedirect(() => updateProduct({}, formData({ id: 1, name: "新", categoryId: 2, unit: "ml", memo: "m" })));
+		await t.db.insert(products).values({ name: "旧", categoryId: 1, unit: "g", amount: 100 });
+		const to = await expectRedirect(() => updateProduct({}, formData({ id: 1, name: "新", categoryId: 2, unit: "ml", amount: 100, memo: "m" })));
 		expect(to).toBe("/products/1");
 		expect(await getProduct(t.db, 1)).toMatchObject({ name: "新", categoryId: 2, unit: "ml", memo: "m" });
 		expect(revalidated).toEqual(expect.arrayContaining(["/", "/products/1"]));
@@ -99,8 +99,8 @@ describe("updateProduct", () => {
 
 	it("新しい画像を付けると旧画像は R2 から消える", async () => {
 		await t.bucket.put("products/old.jpg", new Uint8Array(3));
-		await t.db.insert(products).values({ name: "p", unit: "g", imageKey: "products/old.jpg" });
-		await expectRedirect(() => updateProduct({}, formData({ id: 1, name: "p", unit: "g", image: fakeImage() })));
+		await t.db.insert(products).values({ name: "p", unit: "g", amount: 100, imageKey: "products/old.jpg" });
+		await expectRedirect(() => updateProduct({}, formData({ id: 1, name: "p", unit: "g", amount: 100, image: fakeImage() })));
 		const p = await getProduct(t.db, 1);
 		expect(p?.imageKey).not.toBe("products/old.jpg");
 		expect(await r2Keys()).toEqual([p!.imageKey]);
@@ -108,32 +108,32 @@ describe("updateProduct", () => {
 
 	it("removeImage を付けると画像を消して null にする", async () => {
 		await t.bucket.put("products/old.jpg", new Uint8Array(3));
-		await t.db.insert(products).values({ name: "p", unit: "g", imageKey: "products/old.jpg" });
-		await expectRedirect(() => updateProduct({}, formData({ id: 1, name: "p", unit: "g", removeImage: "on" })));
+		await t.db.insert(products).values({ name: "p", unit: "g", amount: 100, imageKey: "products/old.jpg" });
+		await expectRedirect(() => updateProduct({}, formData({ id: 1, name: "p", unit: "g", amount: 100, removeImage: "on" })));
 		expect((await getProduct(t.db, 1))?.imageKey).toBeNull();
 		expect(await r2Keys()).toEqual([]);
 	});
 
 	it("画像を変更しなければ既存キーを保持する", async () => {
-		await t.db.insert(products).values({ name: "p", unit: "g", imageKey: "products/keep.jpg" });
-		await expectRedirect(() => updateProduct({}, formData({ id: 1, name: "p2", unit: "g" })));
+		await t.db.insert(products).values({ name: "p", unit: "g", amount: 100, imageKey: "products/keep.jpg" });
+		await expectRedirect(() => updateProduct({}, formData({ id: 1, name: "p2", unit: "g", amount: 100 })));
 		expect((await getProduct(t.db, 1))?.imageKey).toBe("products/keep.jpg");
 	});
 
 	it("メーカー名を変更できる", async () => {
-		await t.db.insert(products).values({ name: "p", unit: "g", maker: "旧メーカー" });
-		await expectRedirect(() => updateProduct({}, formData({ id: 1, name: "p", unit: "g", maker: "新メーカー" })));
+		await t.db.insert(products).values({ name: "p", unit: "g", amount: 100, maker: "旧メーカー" });
+		await expectRedirect(() => updateProduct({}, formData({ id: 1, name: "p", unit: "g", amount: 100, maker: "新メーカー" })));
 		expect((await getProduct(t.db, 1))?.maker).toBe("新メーカー");
 	});
 
 	it("メーカー名を空に戻せる", async () => {
-		await t.db.insert(products).values({ name: "p", unit: "g", maker: "メーカー" });
-		await expectRedirect(() => updateProduct({}, formData({ id: 1, name: "p", unit: "g", maker: "" })));
+		await t.db.insert(products).values({ name: "p", unit: "g", amount: 100, maker: "メーカー" });
+		await expectRedirect(() => updateProduct({}, formData({ id: 1, name: "p", unit: "g", amount: 100, maker: "" })));
 		expect((await getProduct(t.db, 1))?.maker).toBeNull();
 	});
 
 	it("存在しない商品はエラー", async () => {
-		const state = await updateProduct({}, formData({ id: 999, name: "p", unit: "g" }));
+		const state = await updateProduct({}, formData({ id: 999, name: "p", unit: "g", amount: 100 }));
 		expect(state).toEqual({ error: "商品が見つかりません" });
 	});
 });
@@ -141,8 +141,8 @@ describe("updateProduct", () => {
 describe("deleteProduct", () => {
 	it("商品・価格記録・画像をまとめて削除し一覧へ戻る", async () => {
 		await t.bucket.put("products/x.jpg", new Uint8Array(3));
-		await t.db.insert(products).values({ name: "p", unit: "g", imageKey: "products/x.jpg" });
-		await t.db.insert(priceRecords).values({ productId: 1, store: "s", price: 100, amount: 100, quantity: 1, recordedAt: "2026-09-12" });
+		await t.db.insert(products).values({ name: "p", unit: "g", amount: 100, imageKey: "products/x.jpg" });
+		await t.db.insert(priceRecords).values({ productId: 1, store: "s", price: 100, quantity: 1, recordedAt: "2026-09-12" });
 
 		const to = await expectRedirect(() => deleteProduct(formData({ id: 1 })));
 		expect(to).toBe("/");
@@ -155,11 +155,11 @@ describe("deleteProduct", () => {
 		await t.bucket.put("products/product.jpg", new Uint8Array(3));
 		await t.bucket.put("products/record-a.jpg", new Uint8Array(3));
 		await t.bucket.put("products/record-b.jpg", new Uint8Array(3));
-		await t.db.insert(products).values({ name: "p", unit: "g", imageKey: "products/product.jpg" });
+		await t.db.insert(products).values({ name: "p", unit: "g", amount: 100, imageKey: "products/product.jpg" });
 		await t.db.insert(priceRecords).values([
-			{ productId: 1, store: "a", price: 100, amount: 100, quantity: 1, recordedAt: "2026-09-12", imageKey: "products/record-a.jpg" },
-			{ productId: 1, store: "b", price: 200, amount: 100, quantity: 1, recordedAt: "2026-09-12", imageKey: "products/record-b.jpg" },
-			{ productId: 1, store: "c", price: 300, amount: 100, quantity: 1, recordedAt: "2026-09-12" },
+			{ productId: 1, store: "a", price: 100, quantity: 1, recordedAt: "2026-09-12", imageKey: "products/record-a.jpg" },
+			{ productId: 1, store: "b", price: 200, quantity: 1, recordedAt: "2026-09-12", imageKey: "products/record-b.jpg" },
+			{ productId: 1, store: "c", price: 300, quantity: 1, recordedAt: "2026-09-12" },
 		]);
 
 		await expectRedirect(() => deleteProduct(formData({ id: 1 })));

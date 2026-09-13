@@ -25,6 +25,8 @@ export const products = sqliteTable(
 		maker: text("maker"),
 		categoryId: integer("category_id").references(() => categories.id, { onDelete: "set null" }),
 		unit: text("unit", { enum: UNITS }).notNull().default("g"),
+		/** 1 個あたりの容量。荷姿が違えば別の商品として扱う */
+		amount: real("amount").notNull().default(1),
 		imageKey: text("image_key"),
 		memo: text("memo"),
 		createdAt: timestamp("created_at"),
@@ -43,9 +45,7 @@ export const priceRecords = sqliteTable(
 		store: text("store").notNull(),
 		/** 税込価格（円） */
 		price: integer("price").notNull(),
-		/** 1 パックあたりの容量（unit 単位） */
-		amount: real("amount").notNull(),
-		/** パック数（まとめ売り対応） */
+		/** 購入個数（同じ荷姿をまとめ買いした場合） */
 		quantity: integer("quantity").notNull().default(1),
 		/** 記録日 YYYY-MM-DD */
 		recordedAt: text("recorded_at").notNull(),

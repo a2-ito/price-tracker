@@ -29,6 +29,27 @@
       "when": 1789213037750,
       "tag": "0003_rapid_juggernaut",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1789293964332,
+      "tag": "0004_add_product_amount",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1789294143870,
+      "tag": "0005_split_products_by_amount",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1789294143871,
+      "tag": "0006_drop_record_amount",
+      "breakpoints": true
     }
   ]
 }
