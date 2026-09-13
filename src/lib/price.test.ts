@@ -38,17 +38,21 @@ describe("unitPrice", () => {
 });
 
 describe("formatPackage", () => {
-	it("入数が 1 なら容量だけ", () => {
-		expect(formatPackage(1000, 1, "ml")).toBe("1,000ml");
+	it("入数が 1 でも個数を示す", () => {
+		expect(formatPackage(1000, 1, "ml")).toBe("1,000ml × 1");
 	});
-	it("入数が 2 以上なら内訳と合計を出す", () => {
+	it("入数が 2 以上なら合計も添える", () => {
 		expect(formatPackage(350, 6, "ml")).toBe("350ml × 6 = 2,100ml");
 	});
 	it("小数の容量も扱える", () => {
 		expect(formatPackage(7.5, 4, "g")).toBe("7.5g × 4 = 30g");
 	});
-	it("入数が 0 以下でも容量だけ返す", () => {
-		expect(formatPackage(100, 0, "g")).toBe("100g");
+	it("容量の単位が個数系でも読める", () => {
+		expect(formatPackage(10, 1, "個")).toBe("10個 × 1");
+		expect(formatPackage(10, 3, "個")).toBe("10個 × 3 = 30個");
+	});
+	it("入数が 0 以下でも 1 として扱う", () => {
+		expect(formatPackage(100, 0, "g")).toBe("100g × 1");
 	});
 });
 
